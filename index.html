@@ -1,0 +1,3693 @@
+<!DOCTYPE html>
+<html lang="es" data-mode="web"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitácora de Inventarios · Joyería</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root{
+    --ink:#0F172A; /* Slate 900 - dark navy/slate for text */
+    --paper:#F8FAFC; /* Slate 50 - clean cool grey background */
+    --card:#FFFFFF;
+    --hairline:#E2E8F0; /* Slate 200 - cool grey borders */
+    --hairline-2:#CBD5E1; /* Slate 300 */
+    --rose:#EF4444; /* Red 500 - vibrant crimson red for faltantes */
+    --rose-deep:#B91C1C; /* Red 700 */
+    --blush:#FEE2E2; /* Red 100 - soft red tint */
+    --sage:#10B981; /* Emerald 500 - vibrant green for sobrantes */
+    --sage-deep:#047857; /* Emerald 700 */
+    --sage-tint:#D1FAE5; /* Emerald 100 - soft green tint */
+    --gold:#F59E0B; /* Amber 500 */
+    --muted:#64748B; /* Slate 500 - cool grey muted text */
+    --shadow: 0 10px 25px -10px rgba(15, 23, 42, 0.08);
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    position: relative;
+    overflow-x: hidden;
+  }
+  ::selection{background:var(--blush);color:var(--rose-deep);}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px;}
+
+  /* ---------- HEADER ---------- */
+  header.top{
+    border-bottom:1px solid var(--hairline);
+    padding:20px 0;
+    position:sticky;top:0;
+    background:rgba(255,255,255,0.9);
+    backdrop-filter:blur(8px);
+    z-index:50;
+  }
+  .top-row{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:baseline;gap:10px;}
+  .brand .mark{
+    font-family:'Fraunces',serif;font-weight:600;font-size:21px;letter-spacing:0.2px;color:#1E3A8A;
+  }
+  .brand .sub{
+    font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;
+  }
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .upload-btn{
+    background:#2563EB;color:#fff;font-size:12px;font-weight:600;letter-spacing:0.3px;
+    padding:10px 16px;border-radius:999px;cursor:pointer;border:1px solid #2563EB;
+    white-space:nowrap;transition:background 0.15s,transform 0.1s;
+  }
+  .upload-btn:hover{background:#1D4ED8; border-color:#1D4ED8;}
+  .generate-btn{background:transparent;color:#2563EB;border:1px solid #2563EB;}
+  .generate-btn:hover{background:#EFF6FF;color:#1E3A8A;}
+  .generate-btn:disabled{opacity:0.45;cursor:not-allowed;}
+  #dataStatus{font-size:11.5px;white-space:nowrap;padding:8px 14px;border-radius:999px;border:1px solid var(--hairline);color:var(--muted);font-weight:600;}
+  #dataStatus.fresh{border-color:var(--sage);color:var(--sage-deep);background:var(--sage-tint);}
+  #dataStatus.err{border-color:var(--rose-deep);color:var(--rose-deep);background:var(--blush);}
+
+  select, input[type=text]{
+    background:var(--card);
+    border:1px solid var(--hairline-2);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:500;
+    padding:10px 14px;
+    border-radius:999px;
+    outline:none;
+  }
+  select:focus, input[type=text]:focus{border-color:var(--rose);}
+
+  #dataWarning{background:var(--blush);color:var(--rose-deep);}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:52px 0 34px;border-bottom:1px solid var(--hairline);}
+  .hero-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:start;}
+  @media (max-width:860px){.hero-grid{grid-template-columns:1fr;}}
+
+  .eyebrow{
+    font-size:11.5px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;
+    color:var(--rose);margin:0 0 14px;
+  }
+  h1.hero-title{
+    font-family:'Fraunces',serif;font-weight:600;font-size:clamp(32px,4.2vw,50px);
+    margin:0 0 12px;line-height:1.05;
+    background: linear-gradient(135deg, var(--ink) 40%, var(--rose-deep) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing:-0.5px;
+  }
+  .hero-desc{color:var(--muted);font-size:15px;max-width:46ch;margin:0;}
+
+  .meta-lines{
+    margin-top:20px;
+    font-size:13px;
+    color:var(--muted);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0 40px;
+  }
+  .meta-lines div{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);gap:12px;}
+  .meta-lines div > span:first-child{font-weight:600;color:var(--ink);opacity:0.65;}
+  .meta-lines div > span:last-child{color:var(--ink);text-align:right;font-weight:600;}
+  .meta-lines div.contralor > span:last-child{color:var(--rose-deep);}
+
+  .stamp-wrap{display:flex;justify-content:flex-start;align-items:center;gap:22px;flex-wrap:wrap;}
+  .stamp{
+    border:2px solid #3B82F6;
+    border-radius:50%;
+    width:176px;height:176px;flex:0 0 auto;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:relative;
+    background:radial-gradient(circle at 30% 20%, rgba(59,130,246,0.08), transparent 70%);
+    box-shadow:var(--shadow);
+  }
+  .stamp::before{
+    content:'';position:absolute;inset:9px;border:1px dashed var(--gold);border-radius:50%;opacity:0.6;
+  }
+  .stamp .num{font-family:'Fraunces',serif;font-weight:700;font-size:46px;color:#1D4ED8;line-height:1;}
+  .stamp .lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-top:5px;text-align:center;}
+  .stamp .range{font-size:9.5px;color:var(--muted);margin-top:9px;text-align:center;opacity:0.9;font-weight:500;}
+
+  .stamp-side{display:flex;flex-direction:column;gap:16px;}
+  .side-stat{border-left:3px solid var(--gold);padding-left:14px;}
+  .side-stat .side-value{font-family:'Fraunces',serif;font-weight:600;font-size:28px;color:var(--ink);line-height:1;}
+  .side-stat .side-label{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-top:5px;}
+
+  /* ---------- SECTION LABELS ---------- */
+  .section{padding:46px 0;}
+  .section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+  .section-eyebrow{font-size:11.5px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;color:var(--rose);margin:0 0 6px;}
+  h2.section-title{font-family:'Fraunces',serif;font-weight:600;font-size:27px;margin:0;color:var(--ink);}
+  .section-note{font-size:12.5px;color:var(--muted);max-width:40ch;text-align:right;line-height:1.55;}
+
+  /* ---------- RESULT BLOCKS (faltante / sobrante) ---------- */
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:16px;}
+  @media (max-width:760px){.result-grid{grid-template-columns:1fr;}}
+  .result-card{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:26px 28px;position:relative;overflow:hidden;border:1px solid var(--hairline);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .result-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 36px -14px rgba(43,35,32,0.28);
+  }
+  .result-card::before{
+    content:'';position:absolute;top:0;left:0;width:100%;height:4px;
+  }
+  .result-card.faltante::before{background:linear-gradient(90deg,var(--rose),var(--rose-deep));}
+  .result-card.sobrante::before{background:linear-gradient(90deg,var(--sage),var(--sage-deep));}
+  .result-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;}
+  .result-name{font-family:'Fraunces',serif;font-weight:600;font-size:19px;}
+  .result-card.faltante .result-name{color:var(--rose-deep);}
+  .result-card.sobrante .result-name{color:var(--sage-deep);}
+  .result-tag{font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:var(--muted);}
+  .result-pzs{font-family:'Fraunces',serif;font-weight:700;font-size:15px;margin-bottom:16px;}
+  .result-card.faltante .result-pzs{color:var(--rose-deep);}
+  .result-card.sobrante .result-pzs{color:var(--sage-deep);}
+  .result-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 16px;padding-top:14px;border-top:1px solid var(--hairline);}
+  .rstat .rl{font-size:9.5px;letter-spacing:0.8px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:5px;}
+  .rstat .rv{font-family:'Fraunces',serif;font-weight:600;font-size:17px;color:var(--ink);}
+  .result-foot{
+    margin-top:14px;padding-top:12px;border-top:1px dashed var(--hairline);
+    font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  }
+  .result-foot strong{color:var(--ink);font-weight:700;}
+
+  /* ---------- KPI STRIP ---------- */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  .kpi-item {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    border: 1px solid var(--hairline);
+    box-shadow: var(--shadow);
+    transition: transform 0.25s, box-shadow 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 36px -14px rgba(43,35,32,0.22);
+  }
+  .kpi-item::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 4px;
+  }
+  .kpi-item:nth-child(1)::before { background: linear-gradient(90deg, var(--muted), #b5a69e); }
+  .kpi-item:nth-child(2)::before { background: linear-gradient(90deg, var(--gold), #ecd29b); }
+  .kpi-item:nth-child(3)::before { background: linear-gradient(90deg, var(--rose), var(--rose-deep)); }
+  .kpi-item:nth-child(4)::before { background: linear-gradient(90deg, var(--sage), var(--sage-deep)); }
+
+  .kpi-item .k-label {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .kpi-item .k-value {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 24px;
+    color: var(--ink);
+  }
+
+  /* ---------- BODEGA CARDS ---------- */
+  .bodega-grid{display:grid;grid-template-columns:1fr;gap:22px;}
+  .bodega-card{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:26px 28px;border:1px solid var(--hairline);
+  }
+  .bodega-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;flex-wrap:wrap;gap:8px;}
+  .bodega-name{font-family:'Fraunces',serif;font-weight:600;font-size:21px;color:var(--ink);}
+  .bodega-count{font-size:11px;color:var(--muted);font-weight:600;}
+  .bodega-permitido{font-size:12px;color:var(--muted);margin-bottom:18px;}
+  .bodega-permitido strong{color:var(--ink);}
+
+  .people-row{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:18px;padding:14px 16px;background:var(--paper);
+    border-radius:10px;border:1px solid var(--hairline);}
+  .people-item .pl{font-size:9.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:4px;}
+  .people-item .pv{font-size:13px;font-weight:600;color:var(--ink);}
+  .people-item.contralor .pv{color:var(--rose-deep);}
+
+  .bodega-result-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:700px){.bodega-result-grid{grid-template-columns:1fr;}}
+  .mini-result{border-radius:10px;padding:16px 18px;border:1px solid var(--hairline);}
+  .mini-result.faltante{background:linear-gradient(180deg, var(--blush) 0%, rgba(243,222,208,0.25) 100%);}
+  .mini-result.sobrante{background:linear-gradient(180deg, var(--sage-tint) 0%, rgba(230,236,222,0.25) 100%);}
+  .mini-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .mini-name{font-family:'Fraunces',serif;font-weight:600;font-size:15px;}
+  .mini-result.faltante .mini-name{color:var(--rose-deep);}
+  .mini-result.sobrante .mini-name{color:var(--sage-deep);}
+  .mini-pzs{font-size:12px;font-weight:700;}
+  .mini-result.faltante .mini-pzs{color:var(--rose-deep);}
+  .mini-result.sobrante .mini-pzs{color:var(--sage-deep);}
+  .mini-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .mstat .ml{font-size:9px;letter-spacing:0.5px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:3px;}
+  .mstat .mv{font-family:'Fraunces',serif;font-weight:600;font-size:14px;color:var(--ink);}
+
+  /* ---------- TABLE ---------- */
+  .table-tools{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  thead th{
+    text-align:left;font-weight:700;font-size:10.5px;letter-spacing:0.8px;text-transform:uppercase;
+    color:#1E3A8A;padding:12px 10px;border-bottom:2px solid #3B82F6;white-space:nowrap;cursor:pointer;
+    user-select:none;
+  }
+  thead th:hover{color:#3B82F6;}
+  tbody td{padding:11px 10px;border-bottom:1px solid var(--hairline);color:var(--ink);white-space:nowrap;}
+  tbody tr:hover td{background:#EFF6FF;}
+  tbody td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500;}
+  tbody td.neg{color:var(--rose-deep);}
+  tbody td.pos{color:var(--sage-deep);}
+  .table-scroll{overflow-x:auto;border:1px solid var(--hairline);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow);}
+  .badge{display:inline-block;font-size:10px;padding:3px 10px;border-radius:999px;border:1px solid var(--hairline-2);color:var(--muted);font-weight:600;}
+
+  footer{border-top:1px solid var(--hairline);padding:32px 0 54px;color:var(--muted);font-size:11.5px;}
+  footer a{color:var(--rose);}
+  .empty-state{padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;}
+
+  /* ---------- SEMAPHORES ---------- */
+  .semaphore {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-top: 4px;
+  }
+  .semaphore.ok {
+    background: var(--sage-tint);
+    color: var(--sage-deep);
+    border: 1px solid var(--sage);
+  }
+  .semaphore.warn {
+    background: var(--blush);
+    color: var(--rose-deep);
+    border: 1px solid var(--rose);
+  }
+
+  /* ---------- TOOLTIPS ---------- */
+  .tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    margin-left: 5px;
+    color: var(--muted);
+    font-weight: bold;
+    font-size: 11px;
+    background: var(--hairline);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    text-align: center;
+    line-height: 14px;
+    vertical-align: middle;
+  }
+  .tooltip .tooltiptext {
+    visibility: hidden;
+    width: 220px;
+    background-color: var(--ink);
+    color: var(--paper);
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px 10px;
+    position: absolute;
+    z-index: 100;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -110px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    line-height: 1.45;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    white-space: normal;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  .tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--ink) transparent transparent transparent;
+  }
+  .tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  /* ---------- TABLE WRAPPING ---------- */
+  tbody td.desc {
+    white-space: normal !important;
+    word-break: break-word;
+    min-width: 180px;
+    max-width: 250px;
+  }
+
+  /* ---------- ANALYSIS SECTION ---------- */
+  .analysis-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px 26px;
+    border: 1px solid var(--hairline);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .analysis-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 36px -14px rgba(43,35,32,0.25);
+  }
+  .analysis-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--ink);
+    margin: 0 0 16px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .analysis-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .analysis-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    gap: 10px;
+  }
+  .analysis-label {
+    font-weight: 500;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .analysis-sublabel {
+    font-size: 9.5px;
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .analysis-val {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--rose-deep);
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  /* ---------- IMAGE MODAL ---------- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(43,35,32,0.65);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-content {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 48px rgba(43,35,32,0.3);
+    border: 1px solid var(--hairline);
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px; right: 16px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+  }
+  .modal-close:hover { color: var(--rose-deep); }
+  .modal-image {
+    max-width: 100%;
+    max-height: 280px;
+    border-radius: 8px;
+    border: 1px solid var(--hairline);
+    object-fit: contain;
+  }
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--ink);
+    margin: 0;
+  }
+  .modal-error {
+    color: var(--rose-deep);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 40px 0;
+  }
+</style>
+
+<style>
+  html[data-mode="web"] .upload-btn,
+  html[data-mode="web"] #fileInput,
+  html[data-mode="web"] #generateReportBtn,
+  html[data-mode="web"] #generateBackupBtn,
+  html[data-mode="web"] #copyEmailBtn {
+    display: none !important;
+  }
+</style>
+  <meta name="data-mode" content="web">
+</head>
+<body>
+
+<div class="bg-glow" style="position: absolute; top: 0; right: 8%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%); filter: blur(90px); pointer-events: none; z-index: -1;"></div>
+<div class="bg-glow" style="position: absolute; top: 350px; left: -100px; width: 500px; height: 500px; background: radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%); filter: blur(90px); pointer-events: none; z-index: -1;"></div>
+
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand" style="display:flex; align-items:center; gap:12px;">
+      <div id="logoImg" style="height:36px; display:inline-flex; align-items:center; background:#000; padding:4px 14px 4px 10px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.2); user-select:none;">
+        <span style="writing-mode: vertical-rl; transform: rotate(180deg); font-family:'Inter',sans-serif; font-size:8px; font-weight:500; color:#fff; letter-spacing:0.5px; margin-right:4px; opacity:0.9;">ramo</span>
+        <span style="font-family:'Inter',sans-serif; font-weight:700; font-size:24px; color:#fff; letter-spacing:-0.8px; line-height:1;">michelle</span>
+        <span style="font-family:sans-serif; font-size:7px; font-weight:bold; color:#fff; border:1px solid #fff; border-radius:50%; width:10px; height:10px; display:inline-flex; align-items:center; justify-content:center; margin-left:2px; margin-top:-10px;">®</span>
+      </div>
+
+      <div style="display:flex; flex-direction:column;">
+        <span class="mark">Bitácora de Inventarios</span>
+        <span class="sub">/ concentrado</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; background:var(--hairline); padding:3px; border-radius:999px; border:1px solid var(--hairline-2); margin-left:10px;">
+        <button type="button" id="tabSucursalBtn" onclick="switchMainTab('sucursal')" style="padding: 6px 14px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: var(--card); color: var(--ink); border-width: medium; border-style: none; border-color: currentcolor; border-image: none; box-shadow: rgba(0, 0, 0, 0.06) 0px 2px 5px; cursor: pointer; transition: 0.2s;">🏢 Por Sucursal</button>
+        <button type="button" id="tabGlobalBtn" onclick="switchMainTab('global')" style="padding: 6px 14px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: transparent; color: var(--muted); border-width: medium; border-style: none; border-color: currentcolor; border-image: none; cursor: pointer; transition: 0.2s; box-shadow: none;">📊 Visión Global Cadena</button>
+      </div>
+    </div>
+    <div class="controls">
+      <span id="dataStatus" class="badge fresh">Reporte de Inventarios.xlsx · 14 sucursal(es) · 2405 artículos</span>
+      <select id="sucursalSelect" style="display: block;" data-initial="Plaza Las Americas Xalapa Ver__JULIO__2026"><option value="Centro 1 Campeche__JULIO__2026">Centro 1 Campeche</option><option value="Centro 1 Tuxpan Ver__JULIO__2026">Centro 1 Tuxpan Ver</option><option value="Centro 1 Villahermosa Tab__JULIO__2026">Centro 1 Villahermosa Tab</option><option value="Centro 1 Xalapa Ver__JULIO__2026">Centro 1 Xalapa Ver</option><option value="Centro 2 Villahermosa Tab__JULIO__2026">Centro 2 Villahermosa Tab</option><option value="Plaza Cristal 2 Poza Rica Ve__JULIO__2026">Plaza Cristal 2 Poza Rica Ve</option><option value="Plaza Crystal Tuxpan Ver__JULIO__2026">Plaza Crystal Tuxpan Ver</option><option value="Plaza Crystal Xalapa Ver__JULIO__2026">Plaza Crystal Xalapa Ver</option><option value="Plaza Galerias Campeche__JULIO__2026">Plaza Galerias Campeche</option><option value="Plaza Gran Patio Apetatitlan Tlax__JULIO__2026">Plaza Gran Patio Apetatitlan Tlax</option><option value="Plaza Las Americas Villahermosa Tab__JULIO__2026">Plaza Las Americas Villahermosa Tab</option><option value="Plaza Las Americas Xalapa Ver__JULIO__2026">Plaza Las Americas Xalapa Ver</option><option value="Plaza Real Ciudad del Carmen Camp__JULIO__2026">Plaza Real Ciudad del Carmen Camp</option><option value="Plaza Zentralia Ciudad del Carmen Camp__JULIO__2026">Plaza Zentralia Ciudad del Carmen Camp</option></select>
+      <label class="upload-btn" for="fileInput">Cargar Excel actualizado</label>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+      <button type="button" id="generateReportBtn" class="upload-btn generate-btn">Generar informe para compartir</button>
+      <button type="button" id="generateBackupBtn" class="upload-btn generate-btn">Guardar plantilla de trabajo</button>
+      <button type="button" id="copyEmailBtn" class="upload-btn" style="background: rgb(16, 185, 129); color: rgb(255, 255, 255); border: 1px solid rgb(16, 185, 129); font-weight: 700; display: inline-block;">Copiar texto para correo 📋</button>
+    </div>
+  </div>
+</header>
+
+<div id="dataWarning" class="wrap" style="display:none;margin:16px auto 0;padding:14px 20px;border-radius:12px;font-size:12px;line-height:1.6;"></div>
+
+<div id="sucursalViewWrapper" style="display: block;">
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow" id="heroEyebrow">— JULIO 2026</p>
+      <h1 class="hero-title" id="heroTitle">Plaza Las Americas Xalapa Ver</h1>
+      <p class="hero-desc" id="heroDesc">Responsables del corte de inventario y ventana de tiempo evaluada frente al inventario anterior.</p>
+      <div class="meta-lines" id="metaLines"><div class="contralor"><span>Contralor que aplica</span><span>Julio Cesar Lavalle Loria</span></div><div><span>Encargada 1</span><span>
+    <span style="display:inline-flex; align-items:center; gap:6px;">
+      <span>Jessica Pamela Nochebuena Lopez</span>
+      <select class="same-prev-select" data-field="e1Same" style="font-size: 10px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--hairline-2); background: var(--card); color: var(--muted); outline: none; cursor: pointer; margin-left: 6px;">
+        <option value="no" selected="">¿Ant? No</option>
+        <option value="si">¿Ant? Sí</option>
+      </select>
+    </span>
+  </span></div><div><span>Encargada 2 (aux)</span><span>
+    <span style="display:inline-flex; align-items:center; gap:6px;">
+      <span>Jailyn Vela Larios</span>
+      <select class="same-prev-select" data-field="e2Same" style="font-size: 10px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--hairline-2); background: var(--card); color: var(--muted); outline: none; cursor: pointer; margin-left: 6px;">
+        <option value="no" selected="">¿Ant? No</option>
+        <option value="si">¿Ant? Sí</option>
+      </select>
+    </span>
+  </span></div><div><span>Team leader</span><span>Maria Carrasco</span></div><div><span>Almacenista</span><span>
+    <span style="display:inline-flex; align-items:center; gap:6px;">
+      <span>NO HAY ALMACENISTA</span>
+      <select class="same-prev-select" data-field="almSame" style="font-size: 10px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--hairline-2); background: var(--card); color: var(--muted); outline: none; cursor: pointer; margin-left: 6px;">
+        <option value="no" selected="">¿Ant? No</option>
+        <option value="si">¿Ant? Sí</option>
+      </select>
+    </span>
+  </span></div><div><span>Inventario actual</span><span>31/07/2026</span></div><div><span>Fecha fin</span><span>01/08/2026</span></div><div><span>Inventario anterior</span><span>03/09/2025</span></div><div><span>Permitido x mes</span><span>-1,500</span></div></div>
+    </div>
+    <div class="stamp-wrap">
+      <div class="stamp">
+        <div class="num" id="stampDays">331</div>
+        <div class="lbl">días transcurridos</div>
+        <div class="range" id="stampRange">03/09/2025 → 31/07/2026</div>
+      </div>
+      <div class="stamp-side">
+        <div class="side-stat">
+          <div class="side-value" id="stampMonths">10.9</div>
+          <div class="side-label">meses transcurridos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow">— Resultados</p>
+        <h2 class="section-title">Resultados de la Sucursal</h2>
+      </div>
+      <p class="section-note">Piezas físico − sistema. "Real" es el precio real de venta (TOTAL REAL); a veces difiere del sistema (TOTAL) por códigos con descuento.</p>
+    </div>
+    <div class="kpi-strip" id="kpiStripVenta">
+    <div class="kpi-item"><div class="k-label">Artículos evaluados</div><div class="k-value">53</div></div>
+    <div class="kpi-item"><div class="k-label">Con diferencia</div><div class="k-value">53</div></div>
+    <div class="kpi-item"><div class="k-label">Piezas faltantes</div><div class="k-value" style="color:var(--rose-deep);">96</div></div>
+    <div class="kpi-item"><div class="k-label">Piezas sobrantes</div><div class="k-value" style="color:var(--sage-deep);">11</div></div>
+  </div>
+    <div class="result-grid" id="resultGridVenta">
+    <div class="result-card faltante">
+      <div class="result-head">
+        <div class="result-name">Faltante · Total sucursal</div>
+        <div class="result-tag">43 artículos</div>
+      </div>
+      <div class="result-pzs">96 piezas</div>
+      <div class="result-stats">
+        <div class="rstat">
+          <div class="rl">
+            $ Sistema
+            <span class="tooltip">?
+              <span class="tooltiptext">Valor de venta de las piezas según el sistema original.</span>
+            </span>
+          </div>
+          <div class="rv">-$4,311.00</div>
+        </div>
+        <div class="rstat">
+          <div class="rl">
+            $ Real
+            <span class="tooltip">?
+              <span class="tooltiptext">Valor real de venta física actual (puede incluir descuentos autorizados).</span>
+            </span>
+          </div>
+          <div class="rv">-$4,518.00</div>
+        </div>
+        <div class="rstat">
+          <div class="rl">
+            $ Costo
+            <span class="tooltip">?
+              <span class="tooltiptext">Lo que realmente le cuesta a la joyería la pérdida o diferencia del inventario.</span>
+            </span>
+          </div>
+          <div class="rv">-$925.74</div>
+        </div>
+      </div>
+      
+      <div class="result-foot" style="display:flex; flex-direction:column; gap:6px; align-items:stretch;">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (sistema)</span>
+          <strong>-$396.15</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (real)</span>
+          <strong>-$415.17</strong>
+        </div>
+        
+      <div style="display:flex; justify-content:space-between; width:100%; border-top:1px dashed var(--hairline); padding-top:6px; margin-top:2px;">
+        <span>Límite permitido</span>
+        <strong>-$1,500.00 / mes</strong>
+      </div>
+        <div style="display:flex; justify-content:flex-end; width:100%; margin-top:4px;">
+        <span class="semaphore ok">🟢 Dentro de límite permitido</span>
+      </div>
+      </div>
+    </div>
+    <div class="result-card sobrante">
+      <div class="result-head">
+        <div class="result-name">Sobrante · Total sucursal</div>
+        <div class="result-tag">10 artículos</div>
+      </div>
+      <div class="result-pzs">11 piezas</div>
+      <div class="result-stats">
+        <div class="rstat">
+          <div class="rl">
+            $ Sistema
+            <span class="tooltip">?
+              <span class="tooltiptext">Valor de venta de las piezas según el sistema original.</span>
+            </span>
+          </div>
+          <div class="rv">$622.00</div>
+        </div>
+        <div class="rstat">
+          <div class="rl">
+            $ Real
+            <span class="tooltip">?
+              <span class="tooltiptext">Valor real de venta física actual (puede incluir descuentos autorizados).</span>
+            </span>
+          </div>
+          <div class="rv">$661.00</div>
+        </div>
+        <div class="rstat">
+          <div class="rl">
+            $ Costo
+            <span class="tooltip">?
+              <span class="tooltiptext">Lo que realmente le cuesta a la joyería la pérdida o diferencia del inventario.</span>
+            </span>
+          </div>
+          <div class="rv">$115.49</div>
+        </div>
+      </div>
+      
+    </div></div>
+  </div>
+</section>
+
+<section class="section" style="border-top:1px solid var(--hairline); background:#FCF9F5;">
+  <div class="wrap">
+    <div class="section-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+      <div>
+        <p class="section-eyebrow">— Enfoque Directivo</p>
+        <h2 class="section-title" id="analysisSectionTitle">Análisis de Desviaciones (Faltantes)</h2>
+        <p class="section-note" id="analysisSectionNote">Análisis de Pareto: los artículos, líneas y proveedores que acumulan el mayor impacto en pérdidas a precio real.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom: 6px;">
+        <span style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Mostrar:</span>
+        <div style="display:flex; background:var(--hairline); padding:3px; border-radius:20px; border: 1px solid var(--hairline-2); position:relative; cursor:pointer;" onclick="toggleAnalysisType()">
+          <div id="btnFaltantes" style="padding:6px 14px; border-radius:18px; font-size:11px; font-weight:bold; background:var(--rose-deep); color:white; transition:all 0.25s; text-align:center; min-width:80px; user-select:none;">Faltantes</div>
+          <div id="btnSobrantes" style="padding:6px 14px; border-radius:18px; font-size:11px; font-weight:bold; background:transparent; color:var(--muted); transition:all 0.25s; text-align:center; min-width:80px; user-select:none;">Sobrantes</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:22px;">
+      <div class="analysis-card">
+        <h3 class="analysis-title" id="cardTitleArticulos">Top 5 Artículos con Mayor Pérdida</h3>
+        <ul class="analysis-list" id="topArticulosList"><li class="analysis-item" title="Doble clic para ver foto" ondblclick="showImageModal('LWCPSPCA2AB')" onmouseenter="showHoverPreview(event, 'LWCPSPCA2AB')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()" style="cursor: pointer;">
+        <div class="analysis-label">
+          <span style="font-family: monospace; font-size: 13px; font-weight: 700; color: var(--rose-deep);">LWCPSPCA2AB</span>
+          <span class="analysis-sublabel">Tocado Hojas/Prl/Pdras Zir (P/Cry-Bg) · PISO DE VENTA</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$639.00</div>
+      </li><li class="analysis-item" title="Doble clic para ver foto" ondblclick="showImageModal('AFLFAAQCL1AB')" onmouseenter="showHoverPreview(event, 'AFLFAAQCL1AB')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()" style="cursor: pointer;">
+        <div class="analysis-label">
+          <span style="font-family: monospace; font-size: 13px; font-weight: 700; color: var(--rose-deep);">AFLFAAQCL1AB</span>
+          <span class="analysis-sublabel">Aretes Doble Corazones Pdra Zir Dr  (CH) · PISO DE VENTA</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$189.00</div>
+      </li><li class="analysis-item" title="Doble clic para ver foto" ondblclick="showImageModal('8QFQJRCC2AB')" onmouseenter="showHoverPreview(event, '8QFQJRCC2AB')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()" style="cursor: pointer;">
+        <div class="analysis-label">
+          <span style="font-family: monospace; font-size: 13px; font-weight: 700; color: var(--rose-deep);">8QFQJRCC2AB</span>
+          <span class="analysis-sublabel">Juego de Aretes Huggies Liso PI (CH) · PISO DE VENTA</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$169.00</div>
+      </li><li class="analysis-item" title="Doble clic para ver foto" ondblclick="showImageModal('AAXBAEQCA1AN')" onmouseenter="showHoverPreview(event, 'AAXBAEQCA1AN')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()" style="cursor: pointer;">
+        <div class="analysis-label">
+          <span style="font-family: monospace; font-size: 13px; font-weight: 700; color: var(--rose-deep);">AAXBAEQCA1AN</span>
+          <span class="analysis-sublabel">Pulsera Pdras (P/Cry) · PISO DE VENTA</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$159.00</div>
+      </li><li class="analysis-item" title="Doble clic para ver foto" ondblclick="showImageModal('AZYFNYPCA1AM')" onmouseenter="showHoverPreview(event, 'AZYFNYPCA1AM')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()" style="cursor: pointer;">
+        <div class="analysis-label">
+          <span style="font-family: monospace; font-size: 13px; font-weight: 700; color: var(--rose-deep);">AZYFNYPCA1AM</span>
+          <span class="analysis-sublabel">Arete Huggies estrella c/pdrs Dr (CH) · PISO DE VENTA</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$139.00</div>
+      </li></ul>
+      </div>
+      <div class="analysis-card">
+        <h3 class="analysis-title" id="cardTitleLineas">Top 3 Líneas Más Afectadas</h3>
+        <ul class="analysis-list" id="topLineasList"><li class="analysis-item">
+        <div class="analysis-label">
+          <span>CHAPA DE ORO</span>
+          <span class="analysis-sublabel">Línea de Joyería</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$2,101.00</div>
+      </li><li class="analysis-item">
+        <div class="analysis-label">
+          <span>PIEDRA ZIRCONIA (CHECA - AUSTRIACA)</span>
+          <span class="analysis-sublabel">Línea de Joyería</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$639.00</div>
+      </li><li class="analysis-item">
+        <div class="analysis-label">
+          <span>ACERO</span>
+          <span class="analysis-sublabel">Línea de Joyería</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$476.00</div>
+      </li></ul>
+      </div>
+      <div class="analysis-card">
+        <h3 class="analysis-title" id="cardTitleProveedores">Top 3 Proveedores Más Afectados</h3>
+        <ul class="analysis-list" id="topProveedoresList"><li class="analysis-item">
+        <div class="analysis-label">
+          <span>LW</span>
+          <span class="analysis-sublabel">Código Proveedor</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$639.00</div>
+      </li><li class="analysis-item">
+        <div class="analysis-label">
+          <span>8Q</span>
+          <span class="analysis-sublabel">Código Proveedor</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$446.00</div>
+      </li><li class="analysis-item">
+        <div class="analysis-label">
+          <span>BHG</span>
+          <span class="analysis-sublabel">Código Proveedor</span>
+        </div>
+        <div class="analysis-val" style="color: var(--rose-deep);">-$337.00</div>
+      </li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="border-top:1px solid var(--hairline);">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow">— Por bodega</p>
+        <h2 class="section-title">Detalle por bodega</h2>
+      </div>
+      <p class="section-note">Incluye piso de venta, almacén y responsables de cada corte.</p>
+    </div>
+    <div class="bodega-grid" id="bodegaGrid"><div class="bodega-card">
+      <div class="bodega-head">
+        <div class="bodega-name">BODEGA</div>
+        <div class="bodega-count">referencia · sin diferencias</div>
+      </div>
+      <div class="bodega-permitido">Permitido x mes: <strong>-150</strong></div>
+      <div class="people-row">
+          <div class="people-item contralor"><div class="pl">Contralor que aplica</div><div class="pv">Julio Cesar Lavalle Loria</div></div>
+          <div class="people-item"><div class="pl">Almacenista</div><div class="pv">NO HAY ALMACENISTA</div></div></div>
+      <div class="bodega-result-grid">
+        
+    <div class="mini-result faltante">
+      <div class="mini-head">
+        <div class="mini-name">Faltante</div>
+        <div class="mini-pzs">0 pzs</div>
+      </div>
+      <div class="mini-stats">
+        <div class="mstat"><div class="ml">Sistema</div><div class="mv">$0.00</div></div>
+        <div class="mstat"><div class="ml">Real</div><div class="mv">$0.00</div></div>
+        <div class="mstat"><div class="ml">Costo</div><div class="mv">$0.00</div></div>
+      </div>
+      
+      <div class="result-foot" style="display:flex; flex-direction:column; gap:4px; align-items:stretch; margin-top:8px; padding-top:8px; border-top:1px solid var(--hairline); font-size:11px;">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (sistema)</span>
+          <strong>$0.00</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (real)</span>
+          <strong>$0.00</strong>
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; width:100%; border-top:1px dashed var(--hairline); padding-top:4px; margin-top:2px;">
+          <span>Límite permitido</span>
+          <strong>-$150.00 / mes</strong>
+        </div>
+        <div style="display:flex; justify-content:flex-end; width:100%; margin-top:3px;">
+          <span class="semaphore ok" style="font-size:9.5px; padding:2px 6px;">🟢 Dentro de límite</span>
+        </div>
+      </div>
+    </div>
+        
+    <div class="mini-result sobrante">
+      <div class="mini-head">
+        <div class="mini-name">Sobrante</div>
+        <div class="mini-pzs">0 pzs</div>
+      </div>
+      <div class="mini-stats">
+        <div class="mstat"><div class="ml">Sistema</div><div class="mv">$0.00</div></div>
+        <div class="mstat"><div class="ml">Real</div><div class="mv">$0.00</div></div>
+        <div class="mstat"><div class="ml">Costo</div><div class="mv">$0.00</div></div>
+      </div>
+      
+    </div>
+      </div></div><div class="bodega-card">
+      <div class="bodega-head">
+        <div class="bodega-name">PISO DE VENTA</div>
+        <div class="bodega-count">53 artículos</div>
+      </div>
+      <div class="bodega-permitido">Permitido x mes: <strong>-1,500</strong></div>
+      <div class="people-row">
+        <div class="people-item contralor"><div class="pl">Contralor que aplica</div><div class="pv">Julio Cesar Lavalle Loria</div></div>
+        <div class="people-item"><div class="pl">Encargada 1</div><div class="pv">Jessica Pamela Nochebuena Lopez</div></div>
+        <div class="people-item"><div class="pl">Encargada 2 (aux)</div><div class="pv">Jailyn Vela Larios</div></div></div>
+      <div class="bodega-result-grid">
+        
+    <div class="mini-result faltante">
+      <div class="mini-head">
+        <div class="mini-name">Faltante</div>
+        <div class="mini-pzs">96 pzs</div>
+      </div>
+      <div class="mini-stats">
+        <div class="mstat"><div class="ml">Sistema</div><div class="mv">-$4,311.00</div></div>
+        <div class="mstat"><div class="ml">Real</div><div class="mv">-$4,518.00</div></div>
+        <div class="mstat"><div class="ml">Costo</div><div class="mv">-$925.74</div></div>
+      </div>
+      
+      <div class="result-foot" style="display:flex; flex-direction:column; gap:4px; align-items:stretch; margin-top:8px; padding-top:8px; border-top:1px solid var(--hairline); font-size:11px;">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (sistema)</span>
+          <strong>-$396.15</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (real)</span>
+          <strong>-$415.17</strong>
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; width:100%; border-top:1px dashed var(--hairline); padding-top:4px; margin-top:2px;">
+          <span>Límite permitido</span>
+          <strong>-$1,500.00 / mes</strong>
+        </div>
+        <div style="display:flex; justify-content:flex-end; width:100%; margin-top:3px;">
+          <span class="semaphore ok" style="font-size:9.5px; padding:2px 6px;">🟢 Dentro de límite</span>
+        </div>
+      </div>
+    </div>
+        
+    <div class="mini-result sobrante">
+      <div class="mini-head">
+        <div class="mini-name">Sobrante</div>
+        <div class="mini-pzs">11 pzs</div>
+      </div>
+      <div class="mini-stats">
+        <div class="mstat"><div class="ml">Sistema</div><div class="mv">$622.00</div></div>
+        <div class="mstat"><div class="ml">Real</div><div class="mv">$661.00</div></div>
+        <div class="mstat"><div class="ml">Costo</div><div class="mv">$115.49</div></div>
+      </div>
+      
+    </div>
+      </div></div></div>
+  </div>
+</section>
+
+<section class="section" style="border-top:1px solid var(--hairline);">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow">— Detalle</p>
+        <h2 class="section-title">Artículos con diferencia</h2>
+      </div>
+      <p class="section-note">Ordenado por impacto en costo. Usa el buscador o encabezados para filtrar/ordenar.</p>
+    </div>
+    <div class="table-tools">
+      <input type="text" id="searchBox" placeholder="Buscar artículo, descripción, línea, proveedor…" style="min-width:280px;">
+      <select id="bodegaFilter"><option value="">Todas las bodegas</option><option value="BODEGA">BODEGA</option><option value="PISO DE VENTA">PISO DE VENTA</option></select>
+      <select id="lineaFilter"><option value="">Todas las líneas</option></select>
+    </div>
+    <div class="table-scroll">
+      <table id="detailTable">
+        <thead>
+          <tr>
+            <th data-key="BODEGA">Bodega</th>
+            <th data-key="ARTICULO">Artículo</th>
+            <th data-key="DESCRIPCION">Descripción</th>
+            <th data-key="LINEA">Línea</th>
+            <th data-key="PROVEEDOR">Prov.</th>
+            <th data-key="FISICO" class="num">Físico</th>
+            <th data-key="SISTEMA" class="num">Sistema</th>
+            <th data-key="DIFERENCIA" class="num">Dif.</th>
+            <th data-key="TOTAL REAL" class="num">Total $ (real)</th>
+            <th data-key="TOTAL COSTO" class="num">Costo $</th>
+          </tr>
+        </thead>
+        <tbody id="detailBody"><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('LWCPSPCA2AB')" onmouseenter="showHoverPreview(event, 'LWCPSPCA2AB')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">LWCPSPCA2AB</td>
+      <td class="desc">Tocado Hojas/Prl/Pdras Zir (P/Cry-Bg)</td>
+      <td>PIEDRA ZIRCONIA (CHECA - AUSTRIACA)</td>
+      <td>LW</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$639.00</td>
+      <td class="num neg">-$138.52</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AXHTGJRCC1AA')" onmouseenter="showHoverPreview(event, 'AXHTGJRCC1AA')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AXHTGJRCC1AA</td>
+      <td class="desc">funda de lentes</td>
+      <td>LENTES Y ACCESORIOS</td>
+      <td>AXH</td>
+      <td class="num">11</td>
+      <td class="num">65</td>
+      <td class="num neg">-54</td>
+      <td class="num ">$0.00</td>
+      <td class="num neg">-$106.38</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AFLFAAQCL1AB')" onmouseenter="showHoverPreview(event, 'AFLFAAQCL1AB')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AFLFAAQCL1AB</td>
+      <td class="desc">Aretes Doble Corazones Pdra Zir Dr  (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>AFL</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$189.00</td>
+      <td class="num neg">-$33.57</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AAXBAEQCA1AN')" onmouseenter="showHoverPreview(event, 'AAXBAEQCA1AN')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AAXBAEQCA1AN</td>
+      <td class="desc">Pulsera Pdras (P/Cry)</td>
+      <td>PEDRERIA</td>
+      <td>AAX</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$159.00</td>
+      <td class="num neg">-$32.29</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('8QFQJRCC2AB')" onmouseenter="showHoverPreview(event, '8QFQJRCC2AB')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">8QFQJRCC2AB</td>
+      <td class="desc">Juego de Aretes Huggies Liso PI (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>8Q</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$169.00</td>
+      <td class="num neg">-$30.07</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('CBAJAAQCA1AU')" onmouseenter="showHoverPreview(event, 'CBAJAAQCA1AU')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">CBAJAAQCA1AU</td>
+      <td class="desc">Aretes Pdras/Perl Incrust 25mm Dr (AI)</td>
+      <td>ACERO</td>
+      <td>CBA</td>
+      <td class="num">1</td>
+      <td class="num">2</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$139.00</td>
+      <td class="num neg">-$26.29</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BGE7AAQCA1AW')" onmouseenter="showHoverPreview(event, 'BGE7AAQCA1AW')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BGE7AAQCA1AW</td>
+      <td class="desc">Aretes Pdras Incrust Zir 2cm (P/Cry)</td>
+      <td>COVER</td>
+      <td>BGE</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$139.00</td>
+      <td class="num neg">-$25.42</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BLXJQMRCC3AG')" onmouseenter="showHoverPreview(event, 'BLXJQMRCC3AG')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BLXJQMRCC3AG</td>
+      <td class="desc">Collar Zodiaco Libra Dr (AI)</td>
+      <td>ACERO</td>
+      <td>BLX</td>
+      <td class="num">4</td>
+      <td class="num">5</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$139.00</td>
+      <td class="num neg">-$24.94</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AZYFNYPCA1AM')" onmouseenter="showHoverPreview(event, 'AZYFNYPCA1AM')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AZYFNYPCA1AM</td>
+      <td class="desc">Arete Huggies estrella c/pdrs Dr (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>AZY</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$139.00</td>
+      <td class="num neg">-$24.42</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BOUJAIRCC4AC')" onmouseenter="showHoverPreview(event, 'BOUJAIRCC4AC')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BOUJAIRCC4AC</td>
+      <td class="desc">Collar Flor Dr (AI)</td>
+      <td>ACERO</td>
+      <td>BOU</td>
+      <td class="num">3</td>
+      <td class="num">4</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$119.00</td>
+      <td class="num neg">-$24.00</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AQSFAARCC3AA')" onmouseenter="showHoverPreview(event, 'AQSFAARCC3AA')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AQSFAARCC3AA</td>
+      <td class="desc">Aretes Espiral Dr/Cry-Zir (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>AQS</td>
+      <td class="num">2</td>
+      <td class="num">3</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$129.00</td>
+      <td class="num neg">-$23.54</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AZQFACPCA1AL')" onmouseenter="showHoverPreview(event, 'AZQFACPCA1AL')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AZQFACPCA1AL</td>
+      <td class="desc">Anillo Palma Dr/Cry (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>AZQ</td>
+      <td class="num">1</td>
+      <td class="num">2</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$129.00</td>
+      <td class="num neg">-$23.48</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BHGFACQCL1AB')" onmouseenter="showHoverPreview(event, 'BHGFACQCL1AB')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BHGFACQCL1AB</td>
+      <td class="desc">Anillo Gotas Dr (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>BHG</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$129.00</td>
+      <td class="num neg">-$22.28</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BHGFACQCL1AE')" onmouseenter="showHoverPreview(event, 'BHGFACQCL1AE')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BHGFACQCL1AE</td>
+      <td class="desc">Anillo Forma de Gotas Dr (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>BHG</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$129.00</td>
+      <td class="num neg">-$22.28</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BIDHAARCC3AN')" onmouseenter="showHoverPreview(event, 'BIDHAARCC3AN')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BIDHAARCC3AN</td>
+      <td class="desc">Aretes Flor Pdra Cristal  (D)</td>
+      <td>FANT C/O</td>
+      <td>BID</td>
+      <td class="num">2</td>
+      <td class="num">3</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$129.00</td>
+      <td class="num neg">-$22.14</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AQYTFIQCA2AJ')" onmouseenter="showHoverPreview(event, 'AQYTFIQCA2AJ')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AQYTFIQCA2AJ</td>
+      <td class="desc">Lentes (NgM/Transp)</td>
+      <td>LENTES Y ACCESORIOS</td>
+      <td>AQY</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$109.00</td>
+      <td class="num neg">-$20.26</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BKNFACRCC3AX')" onmouseenter="showHoverPreview(event, 'BKNFACRCC3AX')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BKNFACRCC3AX</td>
+      <td class="desc">Anillo Flor Esmalte/Pdra. Zir Dr/Rs (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>BKN</td>
+      <td class="num">1</td>
+      <td class="num">2</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$119.00</td>
+      <td class="num neg">-$19.90</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BKMFAERCC2AG')" onmouseenter="showHoverPreview(event, 'BKMFAERCC2AG')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BKMFAERCC2AG</td>
+      <td class="desc">AY-Pulsera Perlas Dr/Prl (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>BKM</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$109.00</td>
+      <td class="num neg">-$19.47</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BKMFAERCC2AH')" onmouseenter="showHoverPreview(event, 'BKMFAERCC2AH')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BKMFAERCC2AH</td>
+      <td class="desc">AY-Pulsera Bolitas/Perla Pdra Zir Dr/Ng (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>BKM</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$109.00</td>
+      <td class="num neg">-$19.47</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('8QFNYRCC3BM')" onmouseenter="showHoverPreview(event, '8QFNYRCC3BM')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">8QFNYRCC3BM</td>
+      <td class="desc">Aretes Huggie Liso Dr (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>8Q</td>
+      <td class="num">4</td>
+      <td class="num">5</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$99.00</td>
+      <td class="num neg">-$18.03</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BEVFPEQCA1AC')" onmouseenter="showHoverPreview(event, 'BEVFPEQCA1AC')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BEVFPEQCA1AC</td>
+      <td class="desc">Arete Earcuff Picos Dr/Cry (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>BEV</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$99.00</td>
+      <td class="num neg">-$17.53</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BADIAERCC3AF')" onmouseenter="showHoverPreview(event, 'BADIAERCC3AF')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BADIAERCC3AF</td>
+      <td class="desc">Pulsera Dijes Colg. (P)</td>
+      <td>FANT B/M/P</td>
+      <td>BAD</td>
+      <td class="num">2</td>
+      <td class="num">3</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$99.00</td>
+      <td class="num neg">-$16.69</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('8QFNYQCL1AQ')" onmouseenter="showHoverPreview(event, '8QFNYQCL1AQ')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">8QFNYQCL1AQ</td>
+      <td class="desc">Aretes Huggie Trenzado Dr (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>8Q</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$99.00</td>
+      <td class="num neg">-$16.08</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BGFIKPQCA1AA')" onmouseenter="showHoverPreview(event, 'BGFIKPQCA1AA')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BGFIKPQCA1AA</td>
+      <td class="desc">Juego de Pulseras Piedras (D)</td>
+      <td>FANT B/M/P</td>
+      <td>BGF</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$89.00</td>
+      <td class="num neg">-$16.00</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BFQFAERCC2AN')" onmouseenter="showHoverPreview(event, 'BFQFAERCC2AN')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BFQFAERCC2AN</td>
+      <td class="desc">Pulsera Bolitas Dr (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>BFQ</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$89.00</td>
+      <td class="num neg">-$14.89</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AQSFOHPCA1AM')" onmouseenter="showHoverPreview(event, 'AQSFOHPCA1AM')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AQSFOHPCA1AM</td>
+      <td class="desc">Aretes Flor D/Cry (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>AQS</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$89.00</td>
+      <td class="num neg">-$14.65</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('ANFHGCRCC4AF')" onmouseenter="showHoverPreview(event, 'ANFHGCRCC4AF')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">ANFHGCRCC4AF</td>
+      <td class="desc">Juego de Aretes Crzn/Flor (D/Cry)</td>
+      <td>FANT C/O</td>
+      <td>ANF</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$89.00</td>
+      <td class="num neg">-$14.49</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AFLJFZQCL1AY')" onmouseenter="showHoverPreview(event, 'AFLJFZQCL1AY')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AFLJFZQCL1AY</td>
+      <td class="desc">Aretes Aro Plana 23mm PI (AI)</td>
+      <td>ACERO</td>
+      <td>AFL</td>
+      <td class="num">1</td>
+      <td class="num">2</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$79.00</td>
+      <td class="num neg">-$13.26</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BHGFPEQCL1AH')" onmouseenter="showHoverPreview(event, 'BHGFPEQCL1AH')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BHGFPEQCL1AH</td>
+      <td class="desc">Arete Ear Cuff Gota Dr (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>BHG</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$79.00</td>
+      <td class="num neg">-$13.26</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('ADKBRPCA1AY')" onmouseenter="showHoverPreview(event, 'ADKBRPCA1AY')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">ADKBRPCA1AY</td>
+      <td class="desc">Pinza (Mstz)</td>
+      <td>ACCESORIO P/CABELLO</td>
+      <td>AD</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$79.00</td>
+      <td class="num neg">-$13.09</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('ADKCEQCA1AW')" onmouseenter="showHoverPreview(event, 'ADKCEQCA1AW')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">ADKCEQCA1AW</td>
+      <td class="desc">Pasador t/banana Trenzado (Miel)</td>
+      <td>ACCESORIO P/CABELLO</td>
+      <td>AD</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$49.00</td>
+      <td class="num neg">-$12.58</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('8QFNYRCC3AE')" onmouseenter="showHoverPreview(event, '8QFNYRCC3AE')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">8QFNYRCC3AE</td>
+      <td class="desc">Aretes Huggie Pdras Incrust Dr/Cry-Zir (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>8Q</td>
+      <td class="num">1</td>
+      <td class="num">2</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$79.00</td>
+      <td class="num neg">-$12.39</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AZQFACRCC1AL')" onmouseenter="showHoverPreview(event, 'AZQFACRCC1AL')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AZQFACRCC1AL</td>
+      <td class="desc">Anillo Espiral Dr (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>AZQ</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$79.00</td>
+      <td class="num neg">-$12.21</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BGPKBYQCA1AA')" onmouseenter="showHoverPreview(event, 'BGPKBYQCA1AA')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BGPKBYQCA1AA</td>
+      <td class="desc">Liga/Extension de cabello</td>
+      <td>ACCESORIO P/CABELLO</td>
+      <td>BGP</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$49.00</td>
+      <td class="num neg">-$8.00</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BLZKBTRCC3AA')" onmouseenter="showHoverPreview(event, 'BLZKBTRCC3AA')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BLZKBTRCC3AA</td>
+      <td class="desc">Pasador Lazo Estamp. Flores</td>
+      <td>ACCESORIO P/CABELLO</td>
+      <td>BLZ</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$49.00</td>
+      <td class="num neg">-$8.00</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BMLKCHRCC3AB')" onmouseenter="showHoverPreview(event, 'BMLKCHRCC3AB')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BMLKCHRCC3AB</td>
+      <td class="desc">Diadema Trenzada (Ng)</td>
+      <td>ACCESORIO P/CABELLO</td>
+      <td>BML</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$49.00</td>
+      <td class="num neg">-$8.00</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AQRFNYRCC3AG')" onmouseenter="showHoverPreview(event, 'AQRFNYRCC3AG')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AQRFNYRCC3AG</td>
+      <td class="desc">Aretes Huggies Flor 3 Colores (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>AQR</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$39.00</td>
+      <td class="num neg">-$6.44</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AQFLBRPCA2AN')" onmouseenter="showHoverPreview(event, 'AQFLBRPCA2AN')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AQFLBRPCA2AN</td>
+      <td class="desc">Juego de Pinzas</td>
+      <td>PAQUETE</td>
+      <td>AQF</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$39.00</td>
+      <td class="num neg">-$5.81</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('ADKBRPCA1BV')" onmouseenter="showHoverPreview(event, 'ADKBRPCA1BV')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">ADKBRPCA1BV</td>
+      <td class="desc">Pinza (Ng)</td>
+      <td>ACCESORIO P/CABELLO</td>
+      <td>AD</td>
+      <td class="num">3</td>
+      <td class="num">4</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$39.00</td>
+      <td class="num neg">-$5.46</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BGDHGCQCA2AK')" onmouseenter="showHoverPreview(event, 'BGDHGCQCA2AK')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BGDHGCQCA2AK</td>
+      <td class="desc">Juego de Aretes Mariposa/Flor (Clrs)</td>
+      <td>FANT C/O</td>
+      <td>BGD</td>
+      <td class="num">1</td>
+      <td class="num">2</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$39.00</td>
+      <td class="num neg">-$5.27</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BJCRDSQCC1AA')" onmouseenter="showHoverPreview(event, 'BJCRDSQCC1AA')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BJCRDSQCC1AA</td>
+      <td class="desc">Juego de limas para uñas</td>
+      <td>ACCESORIO COSMETICO</td>
+      <td>BJC</td>
+      <td class="num">3</td>
+      <td class="num">4</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$39.00</td>
+      <td class="num neg">-$5.11</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('ABKLBYNCA2AL')" onmouseenter="showHoverPreview(event, 'ABKLBYNCA2AL')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">ABKLBYNCA2AL</td>
+      <td class="desc">Juego de Ligas Topesitos (Tommy)</td>
+      <td>PAQUETE</td>
+      <td>ABK</td>
+      <td class="num">4</td>
+      <td class="num">5</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$29.00</td>
+      <td class="num neg">-$5.05</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BMKLCGRCC3AC')" onmouseenter="showHoverPreview(event, 'BMKLCGRCC3AC')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BMKLCGRCC3AC</td>
+      <td class="desc">Juego de Pasadores Cucas (Ng)</td>
+      <td>PAQUETE</td>
+      <td>BMK</td>
+      <td class="num">0</td>
+      <td class="num">1</td>
+      <td class="num neg">-1</td>
+      <td class="num neg">-$29.00</td>
+      <td class="num neg">-$4.73</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BFJKBTQCA1AH')" onmouseenter="showHoverPreview(event, 'BFJKBTQCA1AH')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BFJKBTQCA1AH</td>
+      <td class="desc">Pasador Moño (Rs/Am)</td>
+      <td>ACCESORIO P/CABELLO</td>
+      <td>BFJ</td>
+      <td class="num">1</td>
+      <td class="num">0</td>
+      <td class="num pos">1</td>
+      <td class="num pos">$29.00</td>
+      <td class="num pos">$4.73</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BGDHGCQCA2AN')" onmouseenter="showHoverPreview(event, 'BGDHGCQCA2AN')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BGDHGCQCA2AN</td>
+      <td class="desc">Juego de Aretes Fig. Varias (Clrs)</td>
+      <td>FANT C/O</td>
+      <td>BGD</td>
+      <td class="num">0</td>
+      <td class="num">-1</td>
+      <td class="num pos">1</td>
+      <td class="num pos">$39.00</td>
+      <td class="num pos">$5.27</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BCYWNAQCF1AA')" onmouseenter="showHoverPreview(event, 'BCYWNAQCF1AA')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BCYWNAQCF1AA</td>
+      <td class="desc">Bolsa de compra</td>
+      <td>VARIOS</td>
+      <td>BCY</td>
+      <td class="num">0</td>
+      <td class="num">-2</td>
+      <td class="num pos">2</td>
+      <td class="num pos">$20.00</td>
+      <td class="num pos">$6.34</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BCFKBVRCC3AA')" onmouseenter="showHoverPreview(event, 'BCFKBVRCC3AA')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BCFKBVRCC3AA</td>
+      <td class="desc">Broche Corazon (D)</td>
+      <td>ACCESORIO P/CABELLO</td>
+      <td>BCF</td>
+      <td class="num">1</td>
+      <td class="num">0</td>
+      <td class="num pos">1</td>
+      <td class="num pos">$49.00</td>
+      <td class="num pos">$7.50</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AZYFPEPCA1AL')" onmouseenter="showHoverPreview(event, 'AZYFPEPCA1AL')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AZYFPEPCA1AL</td>
+      <td class="desc">Aretes Grapa Pdra Dr/Rs (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>AZY</td>
+      <td class="num">4</td>
+      <td class="num">3</td>
+      <td class="num pos">1</td>
+      <td class="num pos">$49.00</td>
+      <td class="num pos">$8.50</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('AUPHGCQCA1AF')" onmouseenter="showHoverPreview(event, 'AUPHGCQCA1AF')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">AUPHGCQCA1AF</td>
+      <td class="desc">AT-Juego de Aretes Fig. Varias (P/Cry)</td>
+      <td>FANT C/O</td>
+      <td>AUP</td>
+      <td class="num">0</td>
+      <td class="num">-1</td>
+      <td class="num pos">1</td>
+      <td class="num pos">$69.00</td>
+      <td class="num pos">$10.86</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('8QFNYRCC3AC')" onmouseenter="showHoverPreview(event, '8QFNYRCC3AC')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">8QFNYRCC3AC</td>
+      <td class="desc">Aretes Huggie Pdras Incrust Dr/Cry-Zir (CH)</td>
+      <td>CHAPA DE ORO</td>
+      <td>8Q</td>
+      <td class="num">1</td>
+      <td class="num">0</td>
+      <td class="num pos">1</td>
+      <td class="num pos">$79.00</td>
+      <td class="num pos">$12.39</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('BNRHAARCC3AB')" onmouseenter="showHoverPreview(event, 'BNRHAARCC3AB')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">BNRHAARCC3AB</td>
+      <td class="desc">Aretes Flor/Perla  (D)</td>
+      <td>FANT C/O</td>
+      <td>BNR</td>
+      <td class="num">2</td>
+      <td class="num">1</td>
+      <td class="num pos">1</td>
+      <td class="num pos">$89.00</td>
+      <td class="num pos">$13.91</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('ADKCHQCA1AE')" onmouseenter="showHoverPreview(event, 'ADKCHQCA1AE')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">ADKCHQCA1AE</td>
+      <td class="desc">Diadema Liso (Ng)</td>
+      <td>ACCESORIO P/CABELLO</td>
+      <td>AD</td>
+      <td class="num">3</td>
+      <td class="num">2</td>
+      <td class="num pos">1</td>
+      <td class="num pos">$59.00</td>
+      <td class="num pos">$14.45</td>
+    </tr><tr>
+      <td><span class="badge">PISO DE VENTA</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Doble clic para ver foto" ondblclick="showImageModal('JV2GKRCC4AJ')" onmouseenter="showHoverPreview(event, 'JV2GKRCC4AJ')" onmousemove="moveHoverPreview(event)" onmouseleave="hideHoverPreview()">JV2GKRCC4AJ</td>
+      <td class="desc">Juego de Collar/Aretes Pdras (P/Cry)</td>
+      <td>FIESTA</td>
+      <td>JV</td>
+      <td class="num">4</td>
+      <td class="num">3</td>
+      <td class="num pos">1</td>
+      <td class="num pos">$179.00</td>
+      <td class="num pos">$31.54</td>
+    </tr></tbody>
+      </table>
+    </div>
+  </div>
+</section></div><!-- /sucursalViewWrapper -->
+
+<!-- VISTA EXECUTIVA GLOBAL / RANKING CADENA -->
+<div id="globalDashboardView" style="display: none;" class="wrap">
+  <section class="hero" style="padding: 24px 0 16px;">
+    <p class="eyebrow">— DASHBOARD EJECUTIVO CADENA</p>
+    <h1 class="hero-title" style="font-size: 32px; margin-bottom: 6px;">Concentrado General de Inventarios</h1>
+    <p class="hero-desc">Análisis comparativo consolidado de todas las sucursales evaluadas en la cadena.</p>
+  </section>
+
+  <!-- Tarjetas KPI Superiores -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div class="card" style="padding: 16px 20px; border-left: 4px solid var(--ink);">
+      <span style="font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Sucursales Evaluadas</span>
+      <div id="globTotalSucursales" style="font-size: 26px; font-weight: 800; font-family: Fraunces, serif; color: var(--ink); margin-top: 4px;">14</div>
+      <span style="font-size: 11px; color: var(--muted);">Cortes de inventario</span>
+    </div>
+
+    <div class="card" style="padding: 16px 20px; border-left: 4px solid var(--rose-deep);">
+      <span style="font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Pérdida Total Cadena ($ Real)</span>
+      <div id="globPerdidaTotal" style="font-size: 26px; font-weight: 800; font-family: Fraunces, serif; color: var(--rose-deep); margin-top: 4px;">-$224,815.00</div>
+      <span style="font-size: 11px; color: var(--rose-deep); font-weight: 600;">Desviación global acumulada</span>
+    </div>
+
+    <div class="card" style="padding: 16px 20px; border-left: 4px solid #F59E0B;">
+      <span style="font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Faltante Total en Piezas</span>
+      <div id="globPiezasFaltantes" style="font-size: 26px; font-weight: 800; font-family: Fraunces, serif; color: #F59E0B; margin-top: 4px;">-3,347 pzas</div>
+      <span style="font-size: 11px; color: var(--muted);">Unidades faltantes totales</span>
+    </div>
+
+    <div class="card" style="padding: 16px 20px; border-left: 4px solid #8B5CF6;">
+      <span style="font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Sucursal Más Crítica</span>
+      <div id="globSucursalCriticaName" style="font-size: 14px; font-weight: 700; color: var(--ink); margin-top: 4px; line-height: 1.3; word-break: break-word;">Plaza Zentralia Ciudad del Carmen Camp</div>
+      <span id="globSucursalCriticaVal" style="font-size: 13px; font-weight: 800; color: var(--rose-deep); display: block; margin-top: 4px;">-$49,789.00</span>
+    </div>
+  </div>
+
+  <!-- Tabla de Ranking de Sucursales -->
+  <div class="card" style="padding: 20px; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h3 style="font-family: Fraunces, serif; font-size: 18px; margin: 0; color: var(--ink);">🏆 Ranking de Sucursales por Impacto Económico</h3>
+        <p style="font-size: 11.5px; color: var(--muted); margin: 2px 0 0 0;">Ordenadas de mayor a menor pérdida en pesos reales. Haz clic en cualquier sucursal para abrir su detalle.</p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; background: var(--bg); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--hairline-2);">
+        <input type="checkbox" id="showAllSucursalesCheck" onchange="renderGlobalDashboard()" style="cursor: pointer; width: 14px; height: 14px; accent-color: var(--rose-deep);">
+        <label for="showAllSucursalesCheck" style="font-size: 11.5px; font-weight: 700; color: var(--ink); cursor: pointer; user-select: none;">
+          Mostrar todas las sucursales de la cadena
+        </label>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px; text-align: center;">#</th>
+            <th>Sucursal</th>
+            <th>Encargada 1</th>
+            <th class="num">Piezas Faltantes</th>
+            <th class="num">$ Faltante Sistema</th>
+            <th class="num">$ Faltante Real</th>
+            <th class="num">Prom. Mensual Faltante</th>
+            <th>Semáforo Límite</th>
+          </tr>
+        </thead>
+        <tbody id="globalSucursalesRankBody"><tr style="cursor: pointer; border-bottom: 1px solid var(--hairline);">
+        <td style="font-weight:700; text-align:center; color:var(--muted); padding: 12px 8px;">1</td>
+        <td style="font-weight:700; color:var(--ink); padding: 12px 8px;">Plaza Zentralia Ciudad del Carmen Camp</td>
+        <td style="color:var(--muted); font-size:12px; padding: 12px 8px;">Sandra Morales Peregrino</td>
+        <td class="num" style="color:var(--rose-deep); font-weight:700; padding: 12px 8px;">-405</td>
+        <td class="num" style="color:var(--ink); font-weight:600; padding: 12px 8px;">-$49,470.00</td>
+        <td class="num" style="color:var(--rose-deep); font-weight:700; padding: 12px 8px;">-$49,789.00</td>
+        <td class="num" style="font-size:11px; line-height:1.4; padding: 12px 8px;">
+          <div>Piso Sist: <strong>-$5,471.68</strong> · Real: <strong style="color:var(--rose-deep);">-$5,506.97</strong> /m</div>
+          <div style="color:var(--muted); font-size:10px; margin-top:2px;">Almacén Sist: <strong>$0.00</strong> · Real: <strong>$0.00</strong> /m</div>
+        </td>
+        <td style="padding: 12px 8px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span class="badge" style="background:#FFF2F0; color:var(--rose-deep); border-color:rgba(230,90,75,0.25); font-size:10px;">⚠️ Piso: Excede</span>
+            <span class="badge ok" style="background:#F0F9F4; color:var(--sage-deep); border-color:rgba(16,185,129,0.2); font-size:10px;">✓ Almacén: Ok</span>
+          </div>
+        </td>
+      </tr><tr style="cursor: pointer; border-bottom: 1px solid var(--hairline);">
+        <td style="font-weight:700; text-align:center; color:var(--muted); padding: 12px 8px;">2</td>
+        <td style="font-weight:700; color:var(--ink); padding: 12px 8px;">Plaza Crystal Tuxpan Ver</td>
+        <td style="color:var(--muted); font-size:12px; padding: 12px 8px;">Maritza Mejia Librado</td>
+        <td class="num" style="color:var(--rose-deep); font-weight:700; padding: 12px 8px;">-203</td>
+        <td class="num" style="color:var(--ink); font-weight:600; padding: 12px 8px;">-$16,368.00</td>
+        <td class="num" style="color:var(--rose-deep); font-weight:700; padding: 12px 8px;">-$16,858.00</td>
+        <td class="num" style="font-size:11px; line-height:1.4; padding: 12px 8px;">
+          <div>Piso Sist: <strong>-$1,517.94</strong> · Real: <strong style="color:var(--rose-deep);">-$1,563.66</strong> /m</div>
+          <div style="color:var(--muted); font-size:10px; margin-top:2px;">Almacén Sist: <strong>-$9.24</strong> · Real: <strong>-$9.24</strong> /m</div>
+        </td>
+        <td style="padding: 12px 8px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span class="badge" style="background:#FFF2F0; color:var(--rose-deep); border-color:rgba(230,90,75,0.25); font-size:10px;">⚠️ Piso: Excede</span>
+            <span class="badge ok" style="background:#F0F9F4; color:var(--sage-deep); border-color:rgba(16,185,129,0.2); font-size:10px;">✓ Almacén: Ok</span>
+          </div>
+        </td>
+      </tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bloque de Análisis Global (Top Líneas, Top Proveedores y Top 10 Artículos Cadena) -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px;">
+    <!-- Top Líneas Global -->
+    <div class="analysis-card">
+      <div class="analysis-header">
+        <h3 class="analysis-title">🏷️ Top 5 Líneas Más Afectadas (Cadena)</h3>
+        <p class="analysis-note">Acumulado en pesos perdidos sumando todas las tiendas</p>
+      </div>
+      <div style="height: 180px; position: relative; margin-bottom: 12px;">
+        <canvas id="lineasChartCanvas"></canvas>
+      </div>
+      <ul id="globTopLineasList" class="analysis-list"></ul>
+    </div>
+
+    <!-- Top Proveedores Global -->
+    <div class="analysis-card">
+      <div class="analysis-header">
+        <h3 class="analysis-title">🏭 Top 5 Proveedores Más Afectados (Cadena)</h3>
+        <p class="analysis-note">Proveedores con mayor impacto económico global</p>
+      </div>
+      <div style="height: 180px; position: relative; margin-bottom: 12px;">
+        <canvas id="proveedoresChartCanvas"></canvas>
+      </div>
+      <ul id="globTopProveedoresList" class="analysis-list"></ul>
+    </div>
+
+    <!-- Top 10 Artículos Críticos Cadena -->
+    <div class="analysis-card">
+      <div class="analysis-header">
+        <h3 class="analysis-title">💎 Top 10 Artículos Críticos (Cadena)</h3>
+        <p class="analysis-note">Códigos con mayor pérdida global (Clic para ver foto e información)</p>
+      </div>
+      <ul id="globTopArticulosList" class="analysis-list"></ul>
+    </div>
+    </div>
+</div><!-- /globalDashboardView -->
+
+<!-- MODAL VISOR DE IMÁGENES Y METADATOS COMPLETO -->
+<div id="imageModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+  <div class="modal-content" style="background:var(--card); border-radius:16px; width:95%; max-width:720px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); border:1px solid var(--hairline-2); position:relative; overflow:hidden; display:flex; flex-direction:column; max-height:90vh;">
+    
+    <!-- Encabezado Modal -->
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--hairline); background:var(--bg);">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:18px;">💎</span>
+        <h3 style="font-family:'Fraunces',serif; font-size:17px; font-weight:700; color:var(--ink); margin:0;">Detalle de Artículo</h3>
+      </div>
+      <button type="button" onclick="closeImageModal()" style="background:none; border:none; font-size:22px; font-weight:700; color:var(--muted); cursor:pointer; padding:0 4px; line-height:1;" title="Cerrar (Esc)">✕</button>
+    </div>
+
+    <!-- Cuerpo Principal Flex -->
+    <div style="display:flex; flex-wrap:wrap; gap:20px; padding:20px; overflow-y:auto; flex:1;">
+      
+      <!-- Columna Izquierda: Imagen del Artículo -->
+      <div style="flex:1; min-width:240px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg); border-radius:12px; padding:12px; border:1px solid var(--hairline-2); min-height:240px; position:relative;">
+        <img id="modalImage" src="" alt="Foto de artículo" style="max-width:100%; max-height:260px; object-fit:contain; border-radius:8px; display:none;">
+        <div id="modalError" style="display:none; text-align:center; padding:20px; color:var(--muted); font-size:12px;">
+          <div style="font-size:32px; margin-bottom:8px;">📷</div>
+          <div style="font-weight:700; color:var(--ink); margin-bottom:4px;">Sin foto disponible</div>
+          <div>No se encontró la imagen en el servidor para este código.</div>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Información y Metadatos del Artículo -->
+      <div style="flex:1.2; min-width:240px; display:flex; flex-direction:column; gap:12px; justify-content:space-between;">
+        
+        <div>
+          <span style="font-size:10px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">CÓDIGO DE ARTÍCULOS</span>
+          <div id="metaCodigo" style="font-family:monospace; font-size:20px; font-weight:800; color:var(--rose-deep); margin-top:2px;">—</div>
+        </div>
+
+        <div>
+          <span style="font-size:10px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">DESCRIPCIÓN</span>
+          <div id="metaDescripcion" style="font-size:13px; font-weight:600; color:var(--ink); line-height:1.4; margin-top:2px;">—</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; padding-top:6px; border-top:1px dashed var(--hairline);">
+          <div>
+            <span style="font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase;">LÍNEA</span>
+            <div id="metaLinea" style="font-size:11.5px; font-weight:700; color:var(--ink); margin-top:2px;">—</div>
+          </div>
+          <div>
+            <span style="font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase;">SUBLÍNEA</span>
+            <div id="metaSublinea" style="font-size:11.5px; font-weight:700; color:var(--ink); margin-top:2px;">—</div>
+          </div>
+          <div>
+            <span style="font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase;">PRECIO</span>
+            <div id="metaPrecio" style="font-size:13px; font-weight:800; color:var(--ink); margin-top:2px;">—</div>
+          </div>
+          <div>
+            <span style="font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase;">PROVEEDOR</span>
+            <div id="metaProveedor" style="font-size:11.5px; font-weight:700; color:var(--ink); margin-top:2px;">—</div>
+          </div>
+        </div>
+
+        <!-- Contenedor Resumen Faltante / Sobrante -->
+        <div id="metaDiffContainer" style="padding:12px 14px; border-radius:10px; background:#FFF2F0; border:1px solid rgba(230,90,75,0.25); display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:4px;">
+          <div>
+            <span id="metaDiffLabel" style="font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase;">FALTANTE PZAS</span>
+            <div id="metaDiffPzs" style="font-size:16px; font-weight:800; color:var(--rose-deep); margin-top:2px;">—</div>
+          </div>
+          <div>
+            <span id="metaTotalLabel" style="font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase;">FALTANTE PESOS</span>
+            <div id="metaTotalReal" style="font-size:16px; font-weight:800; color:var(--rose-deep); margin-top:2px;">—</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Pie del Modal: Controles de Navegación y Contador -->
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-top:1px solid var(--hairline); background:var(--bg);">
+      <button type="button" id="modalPrevBtn" onclick="navigateModal(-1)" style="padding:7px 16px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid var(--hairline-2); background:var(--card); color:var(--ink); cursor:pointer; display:flex; align-items:center; gap:6px;">
+        ← Anterior
+      </button>
+
+      <span id="modalIndexIndicator" style="font-size:12px; font-weight:700; color:var(--muted); font-family:monospace;">— / —</span>
+
+      <button type="button" id="modalNextBtn" onclick="navigateModal(1)" style="padding:7px 16px; border-radius:999px; font-size:12px; font-weight:700; border:none; background:#2563EB; color:#FFF; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(37,99,235,0.3);">
+        Siguiente →
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    Datos base: pestaña CONCENTRADO del archivo Reporte_de_Inventarios.xlsx · Los datos por sucursal (encargadas, contralor, fechas, permitido) se toman una sola vez por combinación sucursal + mes + año, ya que se repiten por artículo. Usa "Cargar Excel actualizado" arriba para reemplazar los datos con una versión más reciente del mismo archivo (con más sucursales o meses agregados) sin necesidad de regenerar este documento — el procesamiento ocurre en tu navegador, el archivo no se envía a ningún servidor.
+  </div>
+</footer>
+
+<script id="override-source" type="application/json">{"Centro 1 Tuxpan Ver__JULIO__2026":{"e1Same":"si","almSame":"si"},"Centro 1 Campeche__JULIO__2026":{"e1Same":"si","e2Same":"si"},"Plaza Galerias Campeche__JULIO__2026":{"e2Same":"si","almSame":"si","e1Same":"si"},"Plaza Cristal 2 Poza Rica Ve__JULIO__2026":{"e1Same":"si","e2Same":"si","almSame":"si"},"Plaza Crystal Tuxpan Ver__JULIO__2026":{"e2Same":"si"},"Plaza Real Ciudad del Carmen Camp__JULIO__2026":{"e1Same":"si","almSame":"si"},"Plaza Zentralia Ciudad del Carmen Camp__JULIO__2026":{"e1Same":"si","e2Same":"si","almSame":"si"},"Plaza Gran Patio Apetatitlan Tlax__JULIO__2026":{"e1Same":"si","e2Same":"si","almSame":"si"},"Centro 2 Villahermosa Tab__JULIO__2026":{"e1Same":"si","e2Same":"si"},"Plaza Crystal Xalapa Ver__JULIO__2026":{"e1Same":"si"},"Plaza Las Americas Villahermosa Tab__JULIO__2026":{"e1Same":"si","e2Same":"si"},"Centro 1 Xalapa Ver__JULIO__2026":{"almSame":"si"},"Centro 1 Villahermosa Tab__JULIO__2026":{"e1Same":"si","almSame":"si"},"Plaza Las Americas Xalapa Ver__JULIO__2026":{"e1Same":"si","e2Same":"si"}}</script>
+
+<script id="resumen-source" type="application/json">{"Centro 1 Campeche__JULIO__2026": {"SUCURSAL": "Centro 1 Campeche", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Carina de los Angeles Sanchez Camara", "ENCARGADA 2 (AUX)": "Ivet Sarai Cervantes Huchin", "TEAM LEADER": "Andrea Herrera", "CONTRALOR QUE APLICA": "JOSE LUIS NOH MAY", "INV ACTUAL": "2026-07-22", "FECHA FIN": "2026-07-23", "INV ANT": "2025-10-26", "PERMITIDO X MES": -1500, "PZS INICIALES": 9551, "PZS FINALES": 9509, "itemCount": 45, "faltanteSobrante": {"ventaPos": 148, "ventaNeg": -5181, "netoVenta": -5033, "costoPos": 28.20000004768372, "costoNeg": -945.5200073719025, "netoCosto": -917.3200073242188}}, "Centro 1 Tuxpan Ver__JULIO__2026": {"SUCURSAL": "Centro 1 Tuxpan Ver", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Carmen Cecilia Lopez Cruz", "ENCARGADA 2 (AUX)": "Karina Vanesa Bandala Hernandez", "TEAM LEADER": "Maria Carrasco", "CONTRALOR QUE APLICA": "Julio Cesar Lavalle Loria", "INV ACTUAL": "2026-07-23", "FECHA FIN": "2026-07-24", "INV ANT": "2025-12-10", "PERMITIDO X MES": -2500, "PZS INICIALES": 12045, "PZS FINALES": 11942, "itemCount": 138, "faltanteSobrante": {"ventaPos": 1761, "ventaNeg": -11963, "netoVenta": -10202, "costoPos": 334.2299997806549, "costoNeg": -2117.0099997520447, "netoCosto": -1782.7799999713898}}, "Plaza Galerias Campeche__JULIO__2026": {"SUCURSAL": "Plaza Galerias Campeche", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Erika Vanesa Cahuich Ek", "ENCARGADA 2 (AUX)": "Yohaly Esther Felix Garduza", "TEAM LEADER": "Andrea Herrera", "CONTRALOR QUE APLICA": "Eddie Oswaldo Sanchez Lara", "INV ACTUAL": "2026-07-23", "FECHA FIN": "2026-07-24", "INV ANT": "2025-10-26", "PERMITIDO X MES": -1500, "PZS INICIALES": 14482, "PZS FINALES": 14434, "itemCount": 71, "faltanteSobrante": {"ventaPos": 598, "ventaNeg": -6278, "netoVenta": -5680, "costoPos": 328.89999508857727, "costoNeg": -1145.2899963855743, "netoCosto": -816.3900012969971}}, "Plaza Cristal 2 Poza Rica Ve__JULIO__2026": {"SUCURSAL": "Plaza Cristal 2 Poza Rica Ve", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Judith Alvarado Maqueda", "ENCARGADA 2 (AUX)": "Rocio Emireth Salas Espinoza", "TEAM LEADER": "Maria Carrasco", "CONTRALOR QUE APLICA": "Julio Cesar Lavalle Loria", "INV ACTUAL": "2026-07-25", "FECHA FIN": "2026-07-27", "INV ANT": "2025-12-17", "PERMITIDO X MES": -1500, "PZS INICIALES": 7607, "PZS FINALES": 7607, "itemCount": 50, "faltanteSobrante": {"ventaPos": 1599, "ventaNeg": -2555, "netoVenta": -956, "costoPos": 2312.3000478744507, "costoNeg": -2493.8999810218816, "netoCosto": -181.59993314743053}}, "Plaza Crystal Tuxpan Ver__JULIO__2026": {"SUCURSAL": "Plaza Crystal Tuxpan Ver", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Maritza Mejia Librado", "ENCARGADA 2 (AUX)": "Juan Carlos Villarreal Rosales", "TEAM LEADER": "Maria Carrasco", "CONTRALOR QUE APLICA": "Julio Cesar Lavalle Loria", "INV ACTUAL": "2026-07-24", "FECHA FIN": "2026-07-25", "INV ANT": "2025-09-01", "PERMITIDO X MES": -1500, "PZS INICIALES": 9889, "PZS FINALES": 9802, "itemCount": 220, "faltanteSobrante": {"ventaPos": 6355, "ventaNeg": -16368, "netoVenta": -10013, "costoPos": 1485.5000014305115, "costoNeg": -3079.4799993038177, "netoCosto": -1593.9799978733063}}, "Plaza Real Ciudad del Carmen Camp__JULIO__2026": {"SUCURSAL": "Plaza Real Ciudad del Carmen Camp", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Claudet Jazmin Contreras Garcia", "ENCARGADA 2 (AUX)": "Shirley Gabriela Valladares Rodriguez", "TEAM LEADER": "Lany Pech", "CONTRALOR QUE APLICA": "Eddie Oswaldo Sanchez Lara", "INV ACTUAL": "2026-07-24", "FECHA FIN": "2026-07-25", "INV ANT": "2025-10-21", "PERMITIDO X MES": -2500, "PZS INICIALES": 12163, "PZS FINALES": 12137, "itemCount": 76, "faltanteSobrante": {"ventaPos": 1397, "ventaNeg": -6439, "netoVenta": -5042, "costoPos": 544.6700003147125, "costoNeg": -1172.6899998188019, "netoCosto": -628.0199995040894}}, "Plaza Zentralia Ciudad del Carmen Camp__JULIO__2026": {"SUCURSAL": "Plaza Zentralia Ciudad del Carmen Camp", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Sandra Morales Peregrino", "ENCARGADA 2 (AUX)": "Rosa Patricia Hernandez Benitez", "TEAM LEADER": "Lany Pech", "CONTRALOR QUE APLICA": "Jose Luis Noh May", "INV ACTUAL": "2026-07-25", "FECHA FIN": "2026-07-26", "INV ANT": "2025-10-23", "PERMITIDO X MES": -2500, "PZS INICIALES": 9962, "PZS FINALES": 9566, "itemCount": 365, "faltanteSobrante": {"ventaPos": 236, "ventaNeg": -49470, "netoVenta": -49234, "costoPos": 56.139999628067024, "costoNeg": -9047.570003509521, "netoCosto": -8991.430003881454}}, "Plaza Gran Patio Apetatitlan Tlax__JULIO__2026": {"SUCURSAL": "Plaza Gran Patio Apetatitlan Tlax", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Lizeth Bautista Netzahual", "ENCARGADA 2 (AUX)": "Diana Laura Martinez Vazquez", "TEAM LEADER": "Claudia Cuevas", "CONTRALOR QUE APLICA": "Julio Cesar Lavalle Loria", "INV ACTUAL": "2026-07-27", "FECHA FIN": "2026-07-28", "INV ANT": "2025-09-07", "PERMITIDO X MES": -2500, "PZS INICIALES": 11584, "PZS FINALES": 11392, "itemCount": 218, "faltanteSobrante": {"ventaPos": 3386, "ventaNeg": -14636, "netoVenta": -11250, "costoPos": 737.3399986028671, "costoNeg": -2793.71999835968, "netoCosto": -2056.379999756813}}, "Centro 2 Villahermosa Tab__JULIO__2026": {"SUCURSAL": "Centro 2 Villahermosa Tab", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Susana Morales Rodriguez", "ENCARGADA 2 (AUX)": "Marbella Sanchez Lopez", "TEAM LEADER": "Lany Pech", "CONTRALOR QUE APLICA": "Eddie Oswaldo Sanchez Lara", "INV ACTUAL": "2026-07-27", "FECHA FIN": "2026-07-28", "INV ANT": "2025-06-17", "PERMITIDO X MES": -3500, "PZS INICIALES": 18312, "PZS FINALES": 18171, "itemCount": 255, "faltanteSobrante": {"ventaPos": 4476, "ventaNeg": -21954, "netoVenta": -17478, "costoPos": 943.5299978256226, "costoNeg": -3937.080001592636, "netoCosto": -2993.5500037670135}}, "Plaza Crystal Xalapa Ver__JULIO__2026": {"SUCURSAL": "Plaza Crystal Xalapa Ver", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Mayra Lucia Bonilla Baez", "ENCARGADA 2 (AUX)": "Maricarmen Lopez Hernandez", "TEAM LEADER": "Maria Carrasco", "CONTRALOR QUE APLICA": "Julio Cesar Lavalle Loria", "INV ACTUAL": "2026-07-30", "FECHA FIN": "2026-07-31", "INV ANT": "2025-09-05", "PERMITIDO X MES": -1500, "PZS INICIALES": 14815, "PZS FINALES": 14692, "itemCount": 219, "faltanteSobrante": {"ventaPos": 5812, "ventaNeg": -13978, "netoVenta": -8166, "costoPos": 1222.1200075149536, "costoNeg": -2689.5200085639954, "netoCosto": -1467.4000010490417}}, "Plaza Las Americas Villahermosa Tab__JULIO__2026": {"SUCURSAL": "Plaza Las Americas Villahermosa Tab", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Marco Antonio Rivas Cruz", "ENCARGADA 2 (AUX)": "Mariela Paz Ocaña", "TEAM LEADER": "Lany Pech", "CONTRALOR QUE APLICA": "Jose Luis Noh May", "INV ACTUAL": "2026-07-28", "FECHA FIN": "2026-07-29", "INV ANT": "2025-06-20", "PERMITIDO X MES": -2500, "PZS INICIALES": 15342, "PZS FINALES": 15383, "itemCount": 74, "faltanteSobrante": {"ventaPos": 1716, "ventaNeg": -5323, "netoVenta": -3607, "costoPos": 581.8700020313263, "costoNeg": -982.970006942749, "netoCosto": -401.10000491142273}}, "Centro 1 Xalapa Ver__JULIO__2026": {"SUCURSAL": "Centro 1 Xalapa Ver", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Susana Andrea Hernandez Magaña", "ENCARGADA 2 (AUX)": "Sandra Lizbeth Castillo Hernandez", "TEAM LEADER": "Maria Carrasco", "CONTRALOR QUE APLICA": "Julio Cesar Lavalle Loria", "INV ACTUAL": "2026-07-29", "FECHA FIN": "2026-07-30", "INV ANT": "2025-09-04", "PERMITIDO X MES": -2500, "PZS INICIALES": 12240, "PZS FINALES": 12046, "itemCount": 235, "faltanteSobrante": {"ventaPos": 3821, "ventaNeg": -22309, "netoVenta": -18488, "costoPos": 821.060001373291, "costoNeg": -4403.720003604889, "netoCosto": -3582.660002231598}}, "Centro 1 Villahermosa Tab__JULIO__2026": {"SUCURSAL": "Centro 1 Villahermosa Tab", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Francisca Crystel Mendez Cambrano", "ENCARGADA 2 (AUX)": "Valeria Zarrazaga Leon", "TEAM LEADER": "Lany Pech", "CONTRALOR QUE APLICA": "Eddie Oswaldo Sanchez Lara", "INV ACTUAL": "2026-07-30", "FECHA FIN": "2026-08-01", "INV ANT": "2025-06-16", "PERMITIDO X MES": -3500, "PZS INICIALES": 17437, "PZS FINALES": 17172, "itemCount": 386, "faltanteSobrante": {"ventaPos": 7127, "ventaNeg": -38636, "netoVenta": -31509, "costoPos": 2493.2499928474426, "costoNeg": -7250.84000825882, "netoCosto": -4757.590015411377}}, "Plaza Las Americas Xalapa Ver__JULIO__2026": {"SUCURSAL": "Plaza Las Americas Xalapa Ver", "MES": "JULIO", "AÑO": 2026, "ENCARGADA 1": "Jessica Pamela Nochebuena Lopez", "ENCARGADA 2 (AUX)": "Jailyn Vela Larios", "TEAM LEADER": "Maria Carrasco", "CONTRALOR QUE APLICA": "Julio Cesar Lavalle Loria", "INV ACTUAL": "2026-07-31", "FECHA FIN": "2026-08-01", "INV ANT": "2025-09-03", "PERMITIDO X MES": -1500, "PZS INICIALES": 9893, "PZS FINALES": 9808, "itemCount": 53, "faltanteSobrante": {"ventaPos": 622, "ventaNeg": -4311, "netoVenta": -3689, "costoPos": 115.49000072479248, "costoNeg": -925.7400102615355, "netoCosto": -810.250009536743}}}</script>
+<script id="data-source" type="application/json">[]</script>
+<script>
+
+const MESES_ORDER = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+const AVG_MONTH_DAYS = 365 / 12; // = 30.4167 days per month (matches Excel)
+
+function fmtMoney(v){
+  const n = Number(v)||0;
+  const s = Math.abs(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return (n<0?'-$':'$') + s;
+}
+function fmtNum(v){ return Number(v||0).toLocaleString('es-MX'); }
+function fmtDec1(v){ return Number(v||0).toLocaleString('es-MX', {minimumFractionDigits:1, maximumFractionDigits:1}); }
+function fmtDate(d){
+  if(!d) return '—';
+  const [y,m,dd] = d.split('-');
+  return `${dd}/${m}/${y}`;
+}
+function daysBetween(a,b){
+  if(!a||!b) return null;
+  const da = new Date(a), db = new Date(b);
+  return Math.round((da-db)/86400000);
+}
+function monthsBetween(days){
+  if(days === null) return null;
+  return days / AVG_MONTH_DAYS;
+}
+function excelDateToISO(d){
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+function slugify(str){
+  return (str||'reporte').toString()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'reporte';
+}
+
+const isWebMode = document.querySelector('meta[name="data-mode"]')?.content === 'web';
+if (isWebMode) {
+  document.documentElement.setAttribute('data-mode', 'web');
+}
+const RAW = JSON.parse(document.getElementById('data-source').textContent || '[]');
+let resumenGlobalData = {};
+try {
+  const resEl = document.getElementById('resumen-source');
+  if (resEl) resumenGlobalData = JSON.parse(resEl.textContent || '{}');
+} catch(e) {}
+
+let currentRawData = RAW;
+let overrideData = {};
+try {
+  const embedded = JSON.parse(document.getElementById('override-source').textContent || '{}');
+  const localSaved = localStorage.getItem('inv_report_override_data');
+  const localObj = localSaved ? JSON.parse(localSaved) : {};
+  overrideData = Object.assign({}, embedded, localObj);
+} catch(e) {
+  overrideData = {};
+}
+
+let periods = {};
+let periodKeys = [];
+let currentKey = null;
+const sucursalSelect = document.getElementById('sucursalSelect');
+
+function buildPeriods(rawData){
+  periods = {};
+  if (isWebMode && (!rawData || rawData.length === 0) && Object.keys(resumenGlobalData).length > 0) {
+    Object.keys(resumenGlobalData).forEach(key => {
+      const info = resumenGlobalData[key];
+      periods[key] = {
+        header: {
+          SUCURSAL: info.SUCURSAL, MES: info.MES, ANIO: info.AÑO,
+          ENCARGADA1: info['ENCARGADA 1'], ENCARGADA2: info['ENCARGADA 2 (AUX)'], TEAMLEADER: info['TEAM LEADER'],
+          CONTRALOR: info['CONTRALOR QUE APLICA'],
+          INV_ACTUAL: info['INV ACTUAL'], FECHA_FIN: info['FECHA FIN'], INV_ANT: info['INV ANT'],
+          PERMITIDO: info['PERMITIDO X MES']
+        },
+        items: [],
+        bodegaSummaryRows: [],
+        loaded: false
+      };
+    });
+  } else {
+    rawData.forEach(r => {
+      const key = `${r.SUCURSAL}__${r.MES}__${r['AÑO']}`;
+      if(!periods[key]) periods[key] = { header: null, items: [], bodegaSummaryRows: [], loaded: true };
+      if (r.ARTICULO) {
+        periods[key].items.push(r);
+      } else {
+        periods[key].bodegaSummaryRows.push(r);
+      }
+      if(!periods[key].header){
+        periods[key].header = {
+          SUCURSAL: r.SUCURSAL, MES: r.MES, ANIO: r['AÑO'],
+          ENCARGADA1: r['ENCARGADA 1'], ENCARGADA2: r['ENCARGADA 2 (AUX)'], TEAMLEADER: r['TEAM LEADER'],
+          CONTRALOR: r['CONTRALOR QUE APLICA'] || null,
+          INV_ACTUAL: r['INV ACTUAL'], FECHA_FIN: r['FECHA FIN'], INV_ANT: r['INV ANT'],
+          PERMITIDO: r['PERMITIDO X MES']
+        };
+      }
+    });
+  }
+
+  periodKeys = Object.keys(periods).sort((a,b)=>{
+    const pa = periods[a].header, pb = periods[b].header;
+    if(pa.ANIO !== pb.ANIO) return pb.ANIO - pa.ANIO;
+    return MESES_ORDER.indexOf(pb.MES) - MESES_ORDER.indexOf(pa.MES);
+  });
+
+  sucursalSelect.innerHTML = '';
+  periodKeys.forEach(k=>{
+    const opt = document.createElement('option');
+    opt.value = k;
+    const h = periods[k].header;
+    opt.textContent = h.SUCURSAL;
+    sucursalSelect.appendChild(opt);
+  });
+
+  const lastRow = rawData[rawData.length - 1];
+  const lastKey = lastRow ? `${lastRow.SUCURSAL}__${lastRow.MES}__${lastRow['AÑO']}` : null;
+
+  const initial = sucursalSelect.getAttribute('data-initial');
+  if(initial && periodKeys.includes(initial)){
+    currentKey = initial;
+  } else if(lastKey && periodKeys.includes(lastKey)){
+    currentKey = lastKey;
+  } else {
+    currentKey = periodKeys[0];
+  }
+  sucursalSelect.value = currentKey;
+}
+
+async function loadBranchDataIfNeeded(key) {
+  if (!periods[key]) return;
+  if (periods[key].loaded) return;
+  
+  const dataStatus = document.getElementById('dataStatus');
+  if (dataStatus) dataStatus.textContent = 'Cargando datos de sucursal...';
+  
+  const slug = key.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  try {
+    let res = await fetch(`data/${slug}.json`);
+    if (!res.ok) {
+      // Fallback por si los archivos se subieron en la raíz
+      res = await fetch(`${slug}.json`);
+    }
+    if (!res.ok) throw new Error('Network error');
+    const data = await res.json();
+    periods[key].items = data.items || [];
+    periods[key].bodegaSummaryRows = data.bodegaSummaryRows || [];
+    periods[key].loaded = true;
+    if (dataStatus) {
+      let totalCadenaItems = 0;
+      Object.keys(resumenGlobalData).forEach(k => {
+        totalCadenaItems += (resumenGlobalData[k].itemCount || 0);
+      });
+      const numSuc = Object.keys(resumenGlobalData).length || periodKeys.length;
+      dataStatus.textContent = `Reporte de Inventarios · ${numSuc} sucursal(es) · ${totalCadenaItems || periods[key].items.length} artículos`;
+      dataStatus.className = 'badge fresh';
+    }
+  } catch(e) {
+    console.error("Error al cargar JSON de sucursal", e);
+    if (dataStatus) {
+      dataStatus.textContent = 'Error al cargar detalle';
+      dataStatus.className = 'badge err';
+    }
+  }
+}
+
+buildPeriods(RAW);
+
+sucursalSelect.addEventListener('change', async ()=>{
+  currentKey = sucursalSelect.value;
+  await loadBranchDataIfNeeded(currentKey);
+  render();
+});
+
+// ---- carga de un Excel actualizado (misma pestaña CONCENTRADO) ----
+const fileInput = document.getElementById('fileInput');
+const dataStatus = document.getElementById('dataStatus');
+
+if(fileInput){
+fileInput.addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  dataStatus.textContent = 'leyendo archivo…';
+  dataStatus.className = 'badge';
+
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try{
+      const bytes = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(bytes, { type:'array', cellDates:true });
+      const sheetName = wb.SheetNames.find(n => n.trim().toUpperCase() === 'CONCENTRADO');
+      if(!sheetName){
+        dataStatus.textContent = 'no se encontró la pestaña CONCENTRADO';
+        dataStatus.className = 'badge err';
+        return;
+      }
+      const sheet = wb.Sheets[sheetName];
+      let rows = XLSX.utils.sheet_to_json(sheet, { defval: null });
+
+      rows = rows.map(row=>{
+        const out = Object.assign({}, row);
+        ['INV ACTUAL','FECHA FIN','INV ANT'].forEach(k=>{
+          if(out[k] instanceof Date) out[k] = excelDateToISO(out[k]);
+        });
+        return out;
+      }).filter(r => r.SUCURSAL);
+
+      if(rows.length === 0){
+        dataStatus.textContent = 'el archivo no tiene filas en CONCENTRADO';
+        dataStatus.className = 'badge err';
+        return;
+      }
+
+      currentRawData = rows;
+      sucursalSelect.removeAttribute('data-initial');
+      buildPeriods(rows);
+      render();
+
+      if (typeof currentMainTab !== 'undefined' && currentMainTab === 'global') {
+        renderGlobalDashboard();
+      }
+
+      const articulos = rows.filter(r => r.ARTICULO).length;
+      const nSucursales = new Set(rows.map(r=>r.SUCURSAL)).size;
+      dataStatus.textContent = `${file.name} · ${nSucursales} sucursal(es) · ${articulos} artículos`;
+      dataStatus.className = 'badge fresh';
+    }catch(err){
+      dataStatus.textContent = 'error al leer el archivo';
+      dataStatus.className = 'badge err';
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+}
+
+const bodegaFilter = document.getElementById('bodegaFilter');
+const searchBox = document.getElementById('searchBox');
+let sortState = { key: 'TOTAL COSTO', dir: 1 };
+
+document.querySelectorAll('#detailTable thead th').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.key;
+    if(sortState.key === key) sortState.dir *= -1; else { sortState.key = key; sortState.dir = 1; }
+    renderTable();
+  });
+});
+bodegaFilter.addEventListener('change', renderTable);
+const lineaFilterEl = document.getElementById('lineaFilter');
+if (lineaFilterEl) lineaFilterEl.addEventListener('change', renderTable);
+searchBox.addEventListener('input', renderTable);
+
+// construye un objeto de acumulación faltante/sobrante a partir de un arreglo de renglones
+function buildFaltanteSobrante(rows){
+  const r = {
+    faltantePzs:0, sobrantePzs:0, faltantesCount:0, sobrantesCount:0,
+    faltanteSistema:0, sobranteSistema:0, faltanteReal:0, sobranteReal:0,
+    faltanteCosto:0, sobranteCosto:0
+  };
+  rows.forEach(row=>{
+    const d = Number(row.DIFERENCIA)||0;
+    if(d < 0){
+      r.faltantePzs += Math.abs(d); r.faltantesCount++;
+      r.faltanteSistema += Number(row.TOTAL)||0;
+      r.faltanteReal += Number(row['TOTAL REAL'])||0;
+      r.faltanteCosto += Number(row['TOTAL COSTO'])||0;
+    }
+    if(d > 0){
+      r.sobrantePzs += d; r.sobrantesCount++;
+      r.sobranteSistema += Number(row.TOTAL)||0;
+      r.sobranteReal += Number(row['TOTAL REAL'])||0;
+      r.sobranteCosto += Number(row['TOTAL COSTO'])||0;
+    }
+  });
+  return r;
+}
+
+function resultCardHTML(kind, fs, months, tag, limit){
+  const isF = kind === 'faltante';
+  const pzs = isF ? fs.faltantePzs : fs.sobrantePzs;
+  const count = isF ? fs.faltantesCount : fs.sobrantesCount;
+  const sistema = isF ? fs.faltanteSistema : fs.sobranteSistema;
+  const real = isF ? fs.faltanteReal : fs.sobranteReal;
+  const costo = isF ? fs.faltanteCosto : fs.sobranteCosto;
+  const name = isF ? 'Faltante' : 'Sobrante';
+  const promedioSistema = (isF && months && months > 0) ? sistema / months : null;
+  const promedioReal = (isF && months && months > 0) ? real / months : null;
+
+  let semaphoreHtml = '';
+  let limitHtml = '';
+  if (isF && months && months > 0 && typeof limit === 'number') {
+    limitHtml = `
+      <div style="display:flex; justify-content:space-between; width:100%; border-top:1px dashed var(--hairline); padding-top:6px; margin-top:2px;">
+        <span>Límite permitido</span>
+        <strong>${fmtMoney(limit)} / mes</strong>
+      </div>`;
+    
+    const absProm = Math.abs(promedioSistema || 0);
+    const absLim = Math.abs(limit || 1);
+    const pct = Math.round((absProm / absLim) * 100);
+    const pctClamped = Math.min(pct, 100);
+    const isExceeded = promedioSistema < limit;
+    const barColor = isExceeded ? 'var(--rose-deep)' : (pct > 80 ? 'var(--gold)' : 'var(--sage-deep)');
+
+    const barHtml = `
+      <div style="margin-top: 8px; width: 100%;">
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--muted); font-weight:700; margin-bottom:3px;">
+          <span>Consumo de límite</span>
+          <span style="color:${barColor}; font-weight:800;">${pct}%</span>
+        </div>
+        <div style="width:100%; height:7px; background:var(--hairline); border-radius:999px; overflow:hidden;">
+          <div style="width:${pctClamped}%; height:100%; background:${barColor}; border-radius:999px; transition:width 0.4s ease;"></div>
+        </div>
+      </div>
+    `;
+
+    if (isExceeded) {
+      const exceso = Math.abs(promedioSistema - limit);
+      semaphoreHtml = `${barHtml}<div style="display:flex; justify-content:flex-end; width:100%; margin-top:6px;">
+        <span class="semaphore warn">🔴 Excede límite por ${fmtMoney(exceso)}</span>
+      </div>`;
+    } else {
+      semaphoreHtml = `${barHtml}<div style="display:flex; justify-content:flex-end; width:100%; margin-top:6px;">
+        <span class="semaphore ok">🟢 Dentro de límite permitido</span>
+      </div>`;
+    }
+  }
+
+  return `
+    <div class="result-card ${kind}">
+      <div class="result-head">
+        <div class="result-name">${name}${tag?(' · '+tag):''}</div>
+        <div class="result-tag">${count} artículo${count===1?'':'s'}</div>
+      </div>
+      <div class="result-pzs">${fmtNum(pzs)} piezas</div>
+      <div class="result-stats">
+        <div class="rstat">
+          <div class="rl">
+            $ Sistema
+            <span class="tooltip">?
+              <span class="tooltiptext">Valor de venta de las piezas según el sistema original.</span>
+            </span>
+          </div>
+          <div class="rv">${fmtMoney(sistema)}</div>
+        </div>
+        <div class="rstat">
+          <div class="rl">
+            $ Real
+            <span class="tooltip">?
+              <span class="tooltiptext">Valor real de venta física actual (puede incluir descuentos autorizados).</span>
+            </span>
+          </div>
+          <div class="rv">${fmtMoney(real)}</div>
+        </div>
+        <div class="rstat">
+          <div class="rl">
+            $ Costo
+            <span class="tooltip">?
+              <span class="tooltiptext">Lo que realmente le cuesta a la joyería la pérdida o diferencia del inventario.</span>
+            </span>
+          </div>
+          <div class="rv">${fmtMoney(costo)}</div>
+        </div>
+      </div>
+      ${promedioSistema!==null ? `
+      <div class="result-foot" style="display:flex; flex-direction:column; gap:6px; align-items:stretch;">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (sistema)</span>
+          <strong>${fmtMoney(promedioSistema)}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (real)</span>
+          <strong>${fmtMoney(promedioReal)}</strong>
+        </div>
+        ${limitHtml}
+        ${semaphoreHtml}
+      </div>` : ''}
+    </div>`;
+}
+
+function getBodegaMonths(rows, header) {
+  if (rows && rows.length > 0) {
+    const summaryRow = rows.find(r => !r.ARTICULO && r['INV ACTUAL'] && r['INV ANT']);
+    if (summaryRow) {
+      const d = daysBetween(summaryRow['INV ACTUAL'], summaryRow['INV ANT']);
+      if (d !== null && d > 0) return monthsBetween(d);
+    }
+    const rowWithDates = rows.find(r => r['INV ACTUAL'] && r['INV ANT']);
+    if (rowWithDates) {
+      const d = daysBetween(rowWithDates['INV ACTUAL'], rowWithDates['INV ANT']);
+      if (d !== null && d > 0) return monthsBetween(d);
+    }
+  }
+  if (header && header.INV_ACTUAL && header.INV_ANT) {
+    const dHeader = daysBetween(header.INV_ACTUAL, header.INV_ANT);
+    if (dHeader !== null && dHeader > 0) return monthsBetween(dHeader);
+  }
+  return null;
+}
+
+function miniResultHTML(kind, fs, months, limit){
+  const isF = kind === 'faltante';
+  const pzs = isF ? fs.faltantePzs : fs.sobrantePzs;
+  const sistema = isF ? fs.faltanteSistema : fs.sobranteSistema;
+  const real = isF ? fs.faltanteReal : fs.sobranteReal;
+  const costo = isF ? fs.faltanteCosto : fs.sobranteCosto;
+  const name = isF ? 'Faltante' : 'Sobrante';
+  const promedioSistema = (isF && months && months > 0) ? sistema / months : null;
+  const promedioReal = (isF && months && months > 0) ? real / months : null;
+
+  let footHtml = '';
+  if (isF && promedioSistema !== null) {
+    let semaphoreHtml = '';
+    let limitHtml = '';
+    if (typeof limit === 'number' && limit !== 0) {
+      limitHtml = `
+        <div style="display:flex; justify-content:space-between; width:100%; border-top:1px dashed var(--hairline); padding-top:4px; margin-top:2px;">
+          <span>Límite permitido</span>
+          <strong>${fmtMoney(limit)} / mes</strong>
+        </div>`;
+      if (promedioSistema < limit) {
+        const exceso = Math.abs(promedioSistema - limit);
+        semaphoreHtml = `<div style="display:flex; justify-content:flex-end; width:100%; margin-top:3px;">
+          <span class="semaphore warn" style="font-size:9.5px; padding:2px 6px;">🔴 Excede por ${fmtMoney(exceso)}</span>
+        </div>`;
+      } else {
+        semaphoreHtml = `<div style="display:flex; justify-content:flex-end; width:100%; margin-top:3px;">
+          <span class="semaphore ok" style="font-size:9.5px; padding:2px 6px;">🟢 Dentro de límite</span>
+        </div>`;
+      }
+    }
+    footHtml = `
+      <div class="result-foot" style="display:flex; flex-direction:column; gap:4px; align-items:stretch; margin-top:8px; padding-top:8px; border-top:1px solid var(--hairline); font-size:11px;">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (sistema)</span>
+          <strong>${fmtMoney(promedioSistema)}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span>Promedio faltante mensual (real)</span>
+          <strong>${fmtMoney(promedioReal)}</strong>
+        </div>
+        ${limitHtml}
+        ${semaphoreHtml}
+      </div>`;
+  }
+
+  return `
+    <div class="mini-result ${kind}">
+      <div class="mini-head">
+        <div class="mini-name">${name}</div>
+        <div class="mini-pzs">${fmtNum(pzs)} pzs</div>
+      </div>
+      <div class="mini-stats">
+        <div class="mstat"><div class="ml">Sistema</div><div class="mv">${fmtMoney(sistema)}</div></div>
+        <div class="mstat"><div class="ml">Real</div><div class="mv">${fmtMoney(real)}</div></div>
+        <div class="mstat"><div class="ml">Costo</div><div class="mv">${fmtMoney(costo)}</div></div>
+      </div>
+      ${footHtml}
+    </div>`;
+}
+
+function getSameSelectHtml(fieldName, currentValue) {
+  if (currentValue === '—') return '—';
+  const state = overrideData[currentKey]?.[fieldName] || 'no';
+  const isReadOnly = !document.getElementById('generateReportBtn');
+  if (isReadOnly) {
+    return state === 'si' 
+      ? `<span style="display:inline-flex; align-items:center; gap:6px;">
+           <span>${currentValue}</span>
+           <span class="badge ok" style="margin-left: 6px; font-size: 9px; padding: 2px 6px; vertical-align: middle; background: var(--sage-tint); color: var(--sage-deep); border-color: rgba(16,185,129,0.2); white-space: nowrap;">Estuvo inv. anterior</span>
+         </span>`
+      : `<span>${currentValue}</span>`;
+  }
+  return `
+    <span style="display:inline-flex; align-items:center; gap:6px;">
+      <span>${currentValue}</span>
+      <select class="same-prev-select" data-field="${fieldName}" style="font-size: 10px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--hairline-2); background: var(--card); color: var(--muted); outline: none; cursor: pointer; margin-left: 6px;">
+        <option value="no" ${state === 'no' ? 'selected' : ''}>¿Ant? No</option>
+        <option value="si" ${state === 'si' ? 'selected' : ''}>¿Ant? Sí</option>
+      </select>
+    </span>
+  `;
+}
+
+async function render(){
+  if(!currentKey || !periods[currentKey]) return;
+  await loadBranchDataIfNeeded(currentKey);
+  const period = periods[currentKey];
+  const h = period.header;
+
+  document.getElementById('heroEyebrow').textContent = `— ${h.MES} ${h.ANIO}`;
+  document.getElementById('heroTitle').textContent = h.SUCURSAL;
+  document.getElementById('heroDesc').textContent =
+    `Responsables del corte de inventario y ventana de tiempo evaluada frente al inventario anterior.`;
+
+  const items = period.items;
+  const allRows = [...items, ...(period.bodegaSummaryRows || [])];
+  const bRow = allRows.find(r => (r.BODEGA || '').trim().toUpperCase() === 'BODEGA' && r['ENCARGADA 1']);
+  const almacenista = bRow ? bRow['ENCARGADA 1'] : null;
+
+  const e1Val = h.ENCARGADA1 || '—';
+  const e2Val = h.ENCARGADA2 || '—';
+  const almVal = almacenista || '—';
+
+  const meta = document.getElementById('metaLines');
+  meta.innerHTML = '';
+  const metaRows = [
+    ['Contralor que aplica', h.CONTRALOR || '—', 'contralor'],
+    ['Encargada 1', getSameSelectHtml('e1Same', e1Val), ''],
+    ['Encargada 2 (aux)', getSameSelectHtml('e2Same', e2Val), ''],
+    ['Team leader', h.TEAMLEADER || '—', ''],
+    ['Almacenista', getSameSelectHtml('almSame', almVal), ''],
+    ['Inventario actual', fmtDate(h.INV_ACTUAL), ''],
+    ['Fecha fin', fmtDate(h.FECHA_FIN), ''],
+    ['Inventario anterior', fmtDate(h.INV_ANT), ''],
+    ['Permitido x mes', fmtNum(h.PERMITIDO), ''],
+  ];
+  metaRows.forEach(([l,v,cls])=>{
+    const div = document.createElement('div');
+    if(cls) div.className = cls;
+    div.innerHTML = `<span>${l}</span><span>${v}</span>`;
+    meta.appendChild(div);
+  });
+
+  meta.querySelectorAll('.same-prev-select').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const field = e.target.getAttribute('data-field');
+      if(!overrideData[currentKey]) overrideData[currentKey] = {};
+      overrideData[currentKey][field] = e.target.value;
+      try {
+        localStorage.setItem('inv_report_override_data', JSON.stringify(overrideData));
+      } catch(err) {}
+    });
+  });
+
+  const days = daysBetween(h.INV_ACTUAL, h.INV_ANT);
+  const months = monthsBetween(days);
+  document.getElementById('stampDays').textContent = days !== null ? days : '—';
+  document.getElementById('stampRange').textContent = `${fmtDate(h.INV_ANT)} → ${fmtDate(h.INV_ACTUAL)}`;
+  document.getElementById('stampMonths').textContent = months !== null ? fmtDec1(months) : '—';
+
+  const totalArticulos = items.length;
+  const conDiferencia = items.filter(r=>Number(r.DIFERENCIA)!==0).length;
+
+  // ---- Resumen general (todas las bodegas de la sucursal) ----
+  const fsTotal = buildFaltanteSobrante(items);
+  const kpiStrip = document.getElementById('kpiStripVenta');
+  kpiStrip.innerHTML = `
+    <div class="kpi-item"><div class="k-label">Artículos evaluados</div><div class="k-value">${fmtNum(totalArticulos)}</div></div>
+    <div class="kpi-item"><div class="k-label">Con diferencia</div><div class="k-value">${fmtNum(conDiferencia)}</div></div>
+    <div class="kpi-item"><div class="k-label">Piezas faltantes</div><div class="k-value" style="color:var(--rose-deep);">${fmtNum(fsTotal.faltantePzs)}</div></div>
+    <div class="kpi-item"><div class="k-label">Piezas sobrantes</div><div class="k-value" style="color:var(--sage-deep);">${fmtNum(fsTotal.sobrantePzs)}</div></div>
+  `;
+  const resultGrid = document.getElementById('resultGridVenta');
+  resultGrid.innerHTML = resultCardHTML('faltante', fsTotal, months, 'Total sucursal', h.PERMITIDO) + resultCardHTML('sobrante', fsTotal, months, 'Total sucursal', h.PERMITIDO);
+
+  // ---- Análisis de Desviaciones ----
+  renderAnalysis(items);
+
+  // ---- Agrupación por bodega ----
+  const bodegas = {};
+  items.forEach(r=>{
+    const b = r.BODEGA || 'SIN BODEGA';
+    if(!bodegas[b]) bodegas[b] = {
+      rows: [], fisico:0, sistema:0, permitidoSet: new Set(),
+      encargada1: r['ENCARGADA 1'] || null, encargada2: r['ENCARGADA 2 (AUX)'] || null,
+      teamLeader: r['TEAM LEADER'] || null
+    };
+    const bo = bodegas[b];
+    bo.rows.push(r);
+    bo.fisico += Number(r.FISICO)||0;
+    bo.sistema += Number(r.SISTEMA)||0;
+    bo.permitidoSet.add(Number(r['PERMITIDO X MES'])||0);
+  });
+
+  (period.bodegaSummaryRows || []).forEach(r=>{
+    const b = r.BODEGA || 'SIN BODEGA';
+    if(!bodegas[b]){
+      bodegas[b] = {
+        rows: [], fisico:Number(r.FISICO)||0, sistema:Number(r.SISTEMA)||0,
+        permitidoSet: new Set([Number(r['PERMITIDO X MES'])||0]),
+        encargada1: r['ENCARGADA 1'] || null, encargada2: r['ENCARGADA 2 (AUX)'] || null,
+        teamLeader: r['TEAM LEADER'] || null, sinMovimiento: true
+      };
+    }
+  });
+
+  const bodegaGrid = document.getElementById('bodegaGrid');
+  bodegaGrid.innerHTML = '';
+  Object.keys(bodegas).sort().forEach(name=>{
+    const b = bodegas[name];
+    const fs = buildFaltanteSobrante(b.rows);
+    const monthsHeader = monthsBetween(daysBetween(h.INV_ACTUAL, h.INV_ANT));
+    const allBodegaRows = [...b.rows, ...(period.bodegaSummaryRows || []).filter(r => (r.BODEGA || '').trim().toUpperCase() === name.trim().toUpperCase())];
+    const bMonths = getBodegaMonths(allBodegaRows, h) || monthsHeader;
+    const bLimit = b.permitidoSet.size ? Array.from(b.permitidoSet)[0] : null;
+
+    const card = document.createElement('div');
+    card.className = 'bodega-card';
+    const countLabel = b.rows.length > 0
+      ? `${b.rows.length} artículos`
+      : (b.sinMovimiento ? 'referencia · sin diferencias' : '0 artículos');
+    const permitidoLabel = b.permitidoSet.size
+      ? Array.from(b.permitidoSet).map(v=>fmtNum(v)).join(' / ')
+      : '—';
+
+    const esAlmacen = name.trim().toUpperCase() === 'BODEGA';
+    let peopleHtml;
+    if(esAlmacen){
+      if(b.encargada2){
+        peopleHtml = `
+          <div class="people-item contralor"><div class="pl">Contralor que aplica</div><div class="pv">${h.CONTRALOR || '—'}</div></div>
+          <div class="people-item"><div class="pl">Encargados de almacén</div><div class="pv">${b.encargada1 || 'Sin encargado'} / ${b.encargada2}</div></div>`;
+      } else {
+        peopleHtml = `
+          <div class="people-item contralor"><div class="pl">Contralor que aplica</div><div class="pv">${h.CONTRALOR || '—'}</div></div>
+          <div class="people-item"><div class="pl">Almacenista</div><div class="pv">${b.encargada1 || 'Sin encargado'}</div></div>`;
+      }
+    } else {
+      peopleHtml = `
+        <div class="people-item contralor"><div class="pl">Contralor que aplica</div><div class="pv">${h.CONTRALOR || '—'}</div></div>
+        <div class="people-item"><div class="pl">Encargada 1</div><div class="pv">${b.encargada1 || 'Sin encargado'}</div></div>
+        <div class="people-item"><div class="pl">Encargada 2 (aux)</div><div class="pv">${b.encargada2 || 'Sin auxiliar'}</div></div>`;
+    }
+
+    card.innerHTML = `
+      <div class="bodega-head">
+        <div class="bodega-name">${name}</div>
+        <div class="bodega-count">${countLabel}</div>
+      </div>
+      <div class="bodega-permitido">Permitido x mes: <strong>${permitidoLabel}</strong></div>
+      <div class="people-row">${peopleHtml}</div>
+      <div class="bodega-result-grid">
+        ${miniResultHTML('faltante', fs, bMonths, bLimit)}
+        ${miniResultHTML('sobrante', fs, bMonths, bLimit)}
+      </div>`;
+    bodegaGrid.appendChild(card);
+  });
+
+  bodegaFilter.innerHTML = '<option value="">Todas las bodegas</option>';
+  Object.keys(bodegas).sort().forEach(name=>{
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    bodegaFilter.appendChild(opt);
+  });
+
+  const lineaFilter = document.getElementById('lineaFilter');
+  if (lineaFilter) {
+    const currentLineaVal = lineaFilter.value;
+    lineaFilter.innerHTML = '<option value="">Todas las líneas</option>';
+    const lineas = Array.from(new Set(period.items.map(r => (r.LINEA||'').trim()).filter(Boolean))).sort();
+    lineas.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l; opt.textContent = l;
+      lineaFilter.appendChild(opt);
+    });
+    if (lineas.includes(currentLineaVal)) lineaFilter.value = currentLineaVal;
+  }
+
+  renderTable();
+}
+
+function renderTable(){
+  const period = periods[currentKey];
+  let rows = period.items.filter(r => Number(r.DIFERENCIA) !== 0);
+
+  const bf = bodegaFilter.value;
+  if(bf) rows = rows.filter(r => r.BODEGA === bf);
+
+  const lf = document.getElementById('lineaFilter')?.value;
+  if(lf) rows = rows.filter(r => (r.LINEA||'').trim() === lf);
+
+  const q = searchBox.value.trim().toLowerCase();
+  if(q){
+    rows = rows.filter(r =>
+      (r.ARTICULO||'').toLowerCase().includes(q) ||
+      (r.DESCRIPCION||'').toLowerCase().includes(q) ||
+      (r.LINEA||'').toLowerCase().includes(q) ||
+      (r.SUBLINEA||'').toLowerCase().includes(q) ||
+      (r.PROVEEDOR||'').toLowerCase().includes(q)
+    );
+  }
+
+  rows = rows.slice().sort((a,b)=>{
+    const k = sortState.key;
+    let va = a[k], vb = b[k];
+    if(typeof va === 'string' || typeof vb === 'string'){
+      va = (va||'').toString().toLowerCase(); vb = (vb||'').toString().toLowerCase();
+      return va < vb ? -1*sortState.dir : va > vb ? 1*sortState.dir : 0;
+    }
+    return ((va||0) - (vb||0)) * sortState.dir;
+  });
+
+  const tbody = document.getElementById('detailBody');
+  tbody.innerHTML = '';
+  if(rows.length === 0){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="10"><div class="empty-state">Sin artículos con diferencia para este filtro.</div></td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    const dif = Number(r.DIFERENCIA)||0;
+    const tot = Number(r['TOTAL REAL'])||0;
+    const cost = Number(r['TOTAL COSTO'])||0;
+    tr.innerHTML = `
+      <td><span class="badge">${r.BODEGA||''}</span></td>
+      <td style="cursor:pointer; font-family:monospace;" title="Clic para ver foto e información" 
+          onclick="showImageModal('${r.ARTICULO}')"
+          onmouseenter="showHoverPreview(event, '${r.ARTICULO}')"
+          onmousemove="moveHoverPreview(event)"
+          onmouseleave="hideHoverPreview()">${r.ARTICULO||''}</td>
+      <td class="desc">${r.DESCRIPCION||''}</td>
+      <td>${r.LINEA||''}</td>
+      <td>${r.PROVEEDOR||''}</td>
+      <td class="num">${fmtNum(r.FISICO)}</td>
+      <td class="num">${fmtNum(r.SISTEMA)}</td>
+      <td class="num ${dif<0?'neg':(dif>0?'pos':'')}">${fmtNum(dif)}</td>
+      <td class="num ${tot<0?'neg':(tot>0?'pos':'')}">${fmtMoney(tot)}</td>
+      <td class="num ${cost<0?'neg':(cost>0?'pos':'')}">${fmtMoney(cost)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  currentNavigationRows = rows;
+}
+
+// ---- generar informe estático (con datos ya incrustados) para compartir ----
+const generateReportBtn = document.getElementById('generateReportBtn');
+
+if(generateReportBtn){
+generateReportBtn.addEventListener('click', async function(){
+  const originalLabel = generateReportBtn.textContent;
+  generateReportBtn.disabled = true;
+  generateReportBtn.textContent = 'Generando…';
+
+  try{
+    const clone = document.documentElement.cloneNode(true);
+
+    try {
+      const response = await fetch('logo-michelle.png');
+      const blob = await response.blob();
+      const base64Data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const logoClone = clone.querySelector('#logoImg');
+      if (logoClone) logoClone.src = base64Data;
+    } catch(e) {
+      console.warn("No se pudo incrustar el logo en Base64:", e);
+    }
+
+    const dataScript = clone.querySelector('#data-source');
+    dataScript.textContent = JSON.stringify(currentRawData);
+
+    const overrideScript = clone.querySelector('#override-source');
+    if(overrideScript) overrideScript.textContent = JSON.stringify(overrideData);
+
+    const statusEl = clone.querySelector('#dataStatus');
+    if(statusEl){
+      statusEl.textContent = 'datos incluidos';
+      statusEl.className = 'badge';
+    }
+
+    const uploadLabelClone = clone.querySelector('label.upload-btn');
+    if(uploadLabelClone) uploadLabelClone.remove();
+    const fileInputClone = clone.querySelector('#fileInput');
+    if(fileInputClone) fileInputClone.remove();
+    const generateBtnClone = clone.querySelector('#generateReportBtn');
+    if(generateBtnClone) generateBtnClone.remove();
+    const backupBtnClone = clone.querySelector('#generateBackupBtn');
+    if(backupBtnClone) backupBtnClone.remove();
+
+    const footerWrapClone = clone.querySelector('footer .wrap');
+    if(footerWrapClone){
+      footerWrapClone.textContent =
+        'Datos base: pestaña CONCENTRADO del archivo Reporte_de_Inventarios.xlsx · ' +
+        'Los datos por sucursal (encargadas, contralor, fechas, permitido) se toman una sola vez por combinación ' +
+        'sucursal + mes + año, ya que se repiten por artículo. Este informe incluye los datos ya incrustados.';
+    }
+
+    const selectClone = clone.querySelector('#sucursalSelect');
+    if(selectClone) selectClone.setAttribute('data-initial', currentKey || '');
+
+    const htmlStr = '<!DOCTYPE html>\n' + clone.outerHTML;
+    const blob = new Blob([htmlStr], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const period = periods[currentKey];
+    const h = period ? period.header : null;
+    const nSucursales = new Set(currentRawData.map(r=>r.SUCURSAL)).size;
+    const filenameBase = nSucursales > 1
+      ? 'Informe_Inventarios'
+      : `Informe_Inventario_${slugify(h ? h.SUCURSAL : '')}`;
+    const filenameSuffix = h ? `_${h.MES}_${h.ANIO}` : '';
+    const filename = `${filenameBase}${filenameSuffix}.html`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+
+    generateReportBtn.textContent = 'Informe descargado ✓';
+  }catch(err){
+    console.error(err);
+    generateReportBtn.textContent = 'Error al generar';
+  }finally{
+    setTimeout(()=>{
+      generateReportBtn.disabled = false;
+      generateReportBtn.textContent = originalLabel;
+    }, 2200);
+  }
+});
+}
+
+// ---- guardar plantilla de trabajo (con todos los controles activos pero datos actualizados) ----
+const generateBackupBtn = document.getElementById('generateBackupBtn');
+
+if(generateBackupBtn){
+generateBackupBtn.addEventListener('click', async function(){
+  const originalLabel = generateBackupBtn.textContent;
+  generateBackupBtn.disabled = true;
+  generateBackupBtn.textContent = 'Guardando…';
+
+  try{
+    const clone = document.documentElement.cloneNode(true);
+
+    try {
+      const response = await fetch('logo-michelle.png');
+      const blob = await response.blob();
+      const base64Data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const logoClone = clone.querySelector('#logoImg');
+      if (logoClone) logoClone.src = base64Data;
+    } catch(e) {
+      console.warn("No se pudo incrustar el logo en Base64:", e);
+    }
+
+    const dataScript = clone.querySelector('#data-source');
+    dataScript.textContent = JSON.stringify(currentRawData);
+
+    const overrideScript = clone.querySelector('#override-source');
+    if(overrideScript) overrideScript.textContent = JSON.stringify(overrideData);
+
+    const selectClone = clone.querySelector('#sucursalSelect');
+    if(selectClone) selectClone.setAttribute('data-initial', currentKey || '');
+
+    const backupBtnClone = clone.querySelector('#generateBackupBtn');
+    if(backupBtnClone){
+      backupBtnClone.disabled = false;
+      backupBtnClone.textContent = 'Guardar plantilla de trabajo';
+      backupBtnClone.removeAttribute('style');
+    }
+
+    const htmlStr = '<!DOCTYPE html>\n' + clone.outerHTML;
+    const blob = new Blob([htmlStr], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Reporte_Inventarios.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+
+    generateBackupBtn.textContent = 'Plantilla guardada ✓';
+  }catch(err){
+    console.error(err);
+    generateBackupBtn.textContent = 'Error al guardar';
+  }finally{
+    setTimeout(()=>{
+      generateBackupBtn.disabled = false;
+      generateBackupBtn.textContent = originalLabel;
+    }, 2200);
+  }
+});
+}
+
+// ---- copiar resumen formateado para correo al portapapeles ----
+const copyEmailBtn = document.getElementById('copyEmailBtn');
+if(copyEmailBtn){
+copyEmailBtn.addEventListener('click', function(){
+  if(!currentKey || !periods[currentKey]) return;
+  const period = periods[currentKey];
+  const h = period.header;
+  const items = period.items;
+  
+  // Group by bodega
+  const itemsPiso = items.filter(r => (r.BODEGA || '').trim().toUpperCase() === 'PISO DE VENTA');
+  const itemsBodega = items.filter(r => (r.BODEGA || '').trim().toUpperCase() === 'BODEGA');
+  const allPisoRows = [...itemsPiso, ...(period.bodegaSummaryRows || []).filter(r => (r.BODEGA || '').trim().toUpperCase() === 'PISO DE VENTA')];
+  const allBodegaRows = [...itemsBodega, ...(period.bodegaSummaryRows || []).filter(r => (r.BODEGA || '').trim().toUpperCase() === 'BODEGA')];
+  
+  const fsPiso = buildFaltanteSobrante(itemsPiso);
+  const fsBodega = buildFaltanteSobrante(itemsBodega);
+  
+  const days = daysBetween(h.INV_ACTUAL, h.INV_ANT);
+  const months = monthsBetween(days);
+  
+  const monthsPiso = getBodegaMonths(allPisoRows, h) || months;
+  const monthsBodega = getBodegaMonths(allBodegaRows, h) || months;
+  
+  const promedioPisoSist = monthsPiso ? fsPiso.faltanteSistema / monthsPiso : 0;
+  const promedioPisoReal = monthsPiso ? fsPiso.faltanteReal / monthsPiso : 0;
+  const promedioBodegaSist = monthsBodega ? fsBodega.faltanteSistema / monthsBodega : 0;
+  const promedioBodegaReal = monthsBodega ? fsBodega.faltanteReal / monthsBodega : 0;
+
+  const formatVal = (sist, real) => {
+    if (Math.abs(sist - real) < 0.01) {
+      return `${fmtMoney(sist)}`;
+    } else {
+      return `${fmtMoney(sist)} (Real = ${fmtMoney(real)})`;
+    }
+  };
+  
+  // Grammar for E1, E2, Almacenista
+  const e1S = (overrideData[currentKey]?.e1Same || 'no') === 'si';
+  const e2S = (overrideData[currentKey]?.e2Same || 'no') === 'si';
+  const almS = (overrideData[currentKey]?.almSame || 'no') === 'si';
+  
+  let sameNames = [];
+  let diffNames = [];
+  if (e1S) sameNames.push('la encargada'); else diffNames.push('la encargada');
+  if (e2S) sameNames.push('la auxiliar'); else diffNames.push('la auxiliar');
+  if (almS) sameNames.push('la almacenista'); else diffNames.push('la almacenista');
+  
+  let sentence = '';
+  if (sameNames.length === 3) {
+    sentence = 'La encargada, la auxiliar y la almacenista son las mismas que participaron en el inventario anterior.';
+  } else if (diffNames.length === 3) {
+    sentence = 'La encargada, la auxiliar y la almacenista son distintas a las del inventario anterior.';
+  } else {
+    let partSame = '';
+    if (sameNames.length === 1) {
+      partSame = `${sameNames[0]} es la misma que participó`;
+    } else {
+      partSame = `${sameNames.join(' y ')} son las mismas que participaron`;
+    }
+    
+    let partDiff = '';
+    if (diffNames.length === 1) {
+      partDiff = `${diffNames[0]} es distinta`;
+    } else {
+      partDiff = `${diffNames.join(' y ')} son distintas`;
+    }
+    partSame = partSame.charAt(0).toUpperCase() + partSame.slice(1);
+    sentence = `${partSame} en el inventario anterior; ${partDiff}.`;
+  }
+  
+  const hour = new Date().getHours();
+  let greeting = 'Buenas tardes';
+  if (hour < 12) {
+    greeting = 'Buenos días';
+  } else if (hour >= 19) {
+    greeting = 'Buenas noches';
+  }
+
+  const subject = `Resultados Inventario – Sucursal ${h.SUCURSAL}`;
+  
+  const plainText = `📋 Resultados Inventario – Sucursal ${h.SUCURSAL}\n\n` +
+    `${greeting}\n\n` +
+    `Anexo los resultados del inventario realizado en la sucursal ${h.SUCURSAL}.\n\n` +
+    `Detalle de diferencias:\n` +
+    `• Piso de venta: Faltante = ${formatVal(fsPiso.faltanteSistema, fsPiso.faltanteReal)} | Sobrante = ${formatVal(fsPiso.sobranteSistema, fsPiso.sobranteReal)}\n` +
+    `• Almacén: Faltante = ${formatVal(fsBodega.faltanteSistema, fsBodega.faltanteReal)} | Sobrante = ${formatVal(fsBodega.sobranteSistema, fsBodega.sobranteReal)}\n\n` +
+    `Tiempo entre inventarios: ${months !== null ? fmtDec1(months) : '—'} meses\n` +
+    `Promedio faltante mensual piso de venta: ${formatVal(promedioPisoSist, promedioPisoReal)}\n` +
+    `Promedio faltante mensual almacén: ${formatVal(promedioBodegaSist, promedioBodegaReal)}\n\n` +
+    `${sentence}\n\n` +
+    `Gracias.`;
+    
+  const htmlText = `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #111; line-height: 1.6;">` +
+    `<p>📋 <strong>Resultados Inventario – Sucursal ${h.SUCURSAL}</strong></p>` +
+    `<p>🏢 <strong>${greeting}</strong></p>` +
+    `<p>📎 Anexo los <strong>resultados del inventario</strong> realizado en la <strong>sucursal ${h.SUCURSAL}</strong>.</p>` +
+    `<p>📉 <strong>Detalle de diferencias:</strong></p>` +
+    `<ul>` +
+    `<li>Piso de venta: <strong>Faltante = ${formatVal(fsPiso.faltanteSistema, fsPiso.faltanteReal)}</strong> | <strong>Sobrante = ${formatVal(fsPiso.sobranteSistema, fsPiso.sobranteReal)}</strong></li>` +
+    `<li>Almacén: <strong>Faltante = ${formatVal(fsBodega.faltanteSistema, fsBodega.faltanteReal)}</strong> | <strong>Sobrante = ${formatVal(fsBodega.sobranteSistema, fsBodega.sobranteReal)}</strong></li>` +
+    `</ul>` +
+    `<p>⏰ <strong>Tiempo entre inventarios:</strong> ${months !== null ? fmtDec1(months) : '—'} meses</p>` +
+    `<p>📊 <strong>Promedio faltante mensual piso de venta:</strong> ${formatVal(promedioPisoSist, promedioPisoReal)}</p>` +
+    `<p>📊 <strong>Promedio faltante mensual almacén:</strong> ${formatVal(promedioBodegaSist, promedioBodegaReal)}</p>` +
+    `<p>👥 ${sentence.replace('La encargada', '<strong>La encargada</strong>').replace('la auxiliar', '<strong>la auxiliar</strong>').replace('la almacenista', '<strong>la almacenista</strong>')}</p>` +
+    `<p>✅ <strong>Gracias.</strong></p>` +
+    `</div>`;
+
+  const copySuccess = () => {
+    const orig = copyEmailBtn.textContent;
+    copyEmailBtn.textContent = '¡Copiado al portapapeles! ✓';
+    copyEmailBtn.style.background = '#10B981';
+    copyEmailBtn.style.color = '#ffffff';
+    copyEmailBtn.style.borderColor = '#10B981';
+    setTimeout(() => {
+      copyEmailBtn.textContent = orig;
+    }, 2000);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.write) {
+    const blobPlain = new Blob([plainText], { type: 'text/plain' });
+    const blobHtml = new Blob([htmlText], { type: 'text/html' });
+    const data = [new ClipboardItem({
+      'text/plain': blobPlain,
+      'text/html': blobHtml
+    })];
+    
+    navigator.clipboard.write(data).then(copySuccess).catch(err => {
+      if (navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(plainText).then(copySuccess).catch(e => {
+          alert('Error al copiar: ' + e);
+        });
+      } else {
+        alert('Error al copiar al portapapeles');
+      }
+    });
+  } else if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(plainText).then(copySuccess).catch(e => {
+      alert('Error al copiar: ' + e);
+    });
+  } else {
+    alert('Función de portapapeles no soportada en este navegador');
+  }
+});
+}
+
+// ---- VISOR DE IMÁGENES Y PREVIA ----
+let currentNavigationRows = [];
+let currentNavigationIndex = -1;
+
+function showImageModal(codigo) {
+  if (!codigo) return;
+  hideHoverPreview(); // Ocultar previa al abrir modal
+  
+  // 1. Buscar en la lista de navegación actual
+  currentNavigationIndex = currentNavigationRows.findIndex(r => r.ARTICULO === codigo);
+  
+  // 2. Si no se encuentra, buscar en el periodo actual seleccionado
+  if (currentNavigationIndex === -1 && currentKey && periods[currentKey]) {
+    const periodItems = periods[currentKey].items.filter(r => Number(r.DIFERENCIA) !== 0);
+    currentNavigationRows = periodItems;
+    currentNavigationIndex = currentNavigationRows.findIndex(r => r.ARTICULO === codigo);
+  }
+
+  // 3. Si aún no se encuentra (ej. clic desde Visión Global Cadena), buscar en la totalidad de artículos de todas las sucursales
+  if (currentNavigationIndex === -1) {
+    const allChainItems = [];
+    Object.keys(periods).forEach(k => {
+      if (periods[k] && periods[k].items) {
+        periods[k].items.forEach(it => {
+          if (Number(it.DIFERENCIA) !== 0 && !allChainItems.some(x => x.ARTICULO === it.ARTICULO)) {
+            allChainItems.push(it);
+          }
+        });
+      }
+    });
+    currentNavigationRows = allChainItems;
+    currentNavigationIndex = currentNavigationRows.findIndex(r => r.ARTICULO === codigo);
+  }
+  
+  loadModalItem();
+}
+
+function loadModalItem() {
+  if (currentNavigationIndex === -1 || currentNavigationRows.length === 0) return;
+  const item = currentNavigationRows[currentNavigationIndex];
+  const codigo = item.ARTICULO;
+
+  const modal = document.getElementById('imageModal');
+  const img = document.getElementById('modalImage');
+  const errorMsg = document.getElementById('modalError');
+
+  // Rellenar metadatos en el modal
+  document.getElementById('metaCodigo').textContent = codigo;
+  document.getElementById('metaDescripcion').textContent = item.DESCRIPCION || 'Artículo sin descripción';
+  document.getElementById('metaLinea').textContent = item.LINEA || '—';
+  document.getElementById('metaSublinea').textContent = item.SUBLINEA || '—';
+  document.getElementById('metaPrecio').textContent = fmtMoney(Number(item.PRECIO) || 0);
+  document.getElementById('metaProveedor').textContent = item.PROVEEDOR || '—';
+
+  // Rellenar cantidad y valor de diferencias (pesos y piezas)
+  const difVal = Number(item.DIFERENCIA) || 0;
+  const totRealVal = Number(item['TOTAL REAL']) || 0;
+  const diffLabel = difVal < 0 ? 'Faltante Pzas' : 'Sobrante Pzas';
+  const totalLabel = difVal < 0 ? 'Faltante Pesos' : 'Sobrante Pesos';
+  
+  document.getElementById('metaDiffLabel').textContent = diffLabel;
+  document.getElementById('metaTotalLabel').textContent = totalLabel;
+  
+  const diffPzsEl = document.getElementById('metaDiffPzs');
+  const totalRealEl = document.getElementById('metaTotalReal');
+  
+  diffPzsEl.textContent = fmtNum(difVal);
+  totalRealEl.textContent = fmtMoney(totRealVal);
+  
+  if (difVal < 0) {
+    diffPzsEl.style.color = 'var(--rose-deep)';
+    totalRealEl.style.color = 'var(--rose-deep)';
+    document.getElementById('metaDiffContainer').style.background = '#FFF2F0';
+    document.getElementById('metaDiffContainer').style.border = '1px solid rgba(230,90,75,0.25)';
+  } else {
+    diffPzsEl.style.color = 'var(--sage-deep)';
+    totalRealEl.style.color = 'var(--sage-deep)';
+    document.getElementById('metaDiffContainer').style.background = '#F0F9F4';
+    document.getElementById('metaDiffContainer').style.border = '1px solid rgba(135,171,149,0.3)';
+  }
+
+  // Actualizar indicador de posición
+  document.getElementById('modalIndexIndicator').textContent = `${currentNavigationIndex + 1} / ${currentNavigationRows.length}`;
+
+  // Configurar botones de navegación
+  document.getElementById('modalPrevBtn').disabled = currentNavigationIndex === 0;
+  document.getElementById('modalPrevBtn').style.opacity = currentNavigationIndex === 0 ? '0.4' : '1';
+  document.getElementById('modalNextBtn').disabled = currentNavigationIndex === currentNavigationRows.length - 1;
+  document.getElementById('modalNextBtn').style.opacity = currentNavigationIndex === currentNavigationRows.length - 1 ? '0.4' : '1';
+
+  errorMsg.style.display = 'none';
+  img.style.display = 'block';
+  img.src = ''; // reset
+
+  // Definir la fuente primaria HTTPS (GitHub Pages)
+  const primaryUrl = `https://respaldosmichelle2022-ui.github.io/FOTOS-MICHELLE/${codigo}.JPG`;
+  
+  img.onload = function() {
+    img.style.display = 'block';
+    errorMsg.style.display = 'none';
+  };
+
+  img.onerror = function() {
+    img.style.display = 'none';
+    errorMsg.style.display = 'block';
+  };
+
+  img.src = primaryUrl;
+  modal.style.display = 'flex';
+}
+
+function navigateModal(direction) {
+  const newIndex = currentNavigationIndex + direction;
+  if (newIndex >= 0 && newIndex < currentNavigationRows.length) {
+    currentNavigationIndex = newIndex;
+    loadModalItem();
+  }
+}
+
+function closeImageModal() {
+  document.getElementById('imageModal').style.display = 'none';
+}
+
+// Cerrar al hacer clic fuera del modal
+window.addEventListener('click', function(e) {
+  const modal = document.getElementById('imageModal');
+  if (e.target === modal) {
+    modal.style.display = 'none';
+  }
+});
+
+// Cerrar con la tecla ESC (Escape)
+window.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' || e.key === 'Esc') {
+    closeImageModal();
+    hideHoverPreview();
+  }
+});
+
+// ---- PREVIA AL PASAR EL MOUSE (HOVER PREVIEW) ----
+function showHoverPreview(e, codigo) {
+  if (!codigo) return;
+  const preview = document.getElementById('imageHoverPreview');
+  const img = document.getElementById('hoverImage');
+  const primaryUrl = `https://respaldosmichelle2022-ui.github.io/FOTOS-MICHELLE/${codigo}.JPG`;
+  
+  img.onload = function() {
+    preview.style.display = 'block';
+  };
+  
+  img.onerror = function() {
+    preview.style.display = 'none';
+  };
+  
+  img.src = primaryUrl;
+  
+  // Posicionar el preview respecto al cursor
+  preview.style.left = (e.clientX + 15) + 'px';
+  preview.style.top = (e.clientY + 15) + 'px';
+}
+
+function moveHoverPreview(e) {
+  const preview = document.getElementById('imageHoverPreview');
+  preview.style.left = (e.clientX + 15) + 'px';
+  preview.style.top = (e.clientY + 15) + 'px';
+}
+
+function hideHoverPreview() {
+  document.getElementById('imageHoverPreview').style.display = 'none';
+}
+
+// ---- ANÁLISIS DE DESVIACIONES DINÁMICO ----
+let analysisType = 'faltante';
+
+function toggleAnalysisType() {
+  const btnFaltantes = document.getElementById('btnFaltantes');
+  const btnSobrantes = document.getElementById('btnSobrantes');
+  const title = document.getElementById('analysisSectionTitle');
+  const note = document.getElementById('analysisSectionNote');
+  const cardTitleArticulos = document.getElementById('cardTitleArticulos');
+  const cardTitleLineas = document.getElementById('cardTitleLineas');
+  const cardTitleProveedores = document.getElementById('cardTitleProveedores');
+  
+  if (analysisType === 'faltante') {
+    analysisType = 'sobrante';
+    btnFaltantes.style.background = 'transparent';
+    btnFaltantes.style.color = 'var(--muted)';
+    btnSobrantes.style.background = 'var(--sage-deep)';
+    btnSobrantes.style.color = 'white';
+    title.textContent = 'Análisis de Desviaciones (Sobrantes)';
+    note.textContent = 'Análisis de Pareto: los artículos, líneas y proveedores que acumulan el mayor impacto en sobrantes a precio real.';
+    
+    cardTitleArticulos.textContent = 'Top 5 Artículos con Mayor Sobrante';
+    cardTitleLineas.textContent = 'Top 3 Líneas Más Beneficiadas';
+    cardTitleProveedores.textContent = 'Top 3 Proveedores Más Beneficiados';
+  } else {
+    analysisType = 'faltante';
+    btnFaltantes.style.background = 'var(--rose-deep)';
+    btnFaltantes.style.color = 'white';
+    btnSobrantes.style.background = 'transparent';
+    btnSobrantes.style.color = 'var(--muted)';
+    title.textContent = 'Análisis de Desviaciones (Faltantes)';
+    note.textContent = 'Análisis de Pareto: los artículos, líneas y proveedores que acumulan el mayor impacto en pérdidas a precio real.';
+    
+    cardTitleArticulos.textContent = 'Top 5 Artículos con Mayor Pérdida';
+    cardTitleLineas.textContent = 'Top 3 Líneas Más Afectadas';
+    cardTitleProveedores.textContent = 'Top 3 Proveedores Más Afectados';
+  }
+  
+  // Recargar el análisis con los datos del periodo actual
+  const period = periods[currentKey];
+  if (period) {
+    renderAnalysis(period.items);
+  }
+}
+
+function renderAnalysis(items) {
+  const topArticulosList = document.getElementById('topArticulosList');
+  const topLineasList = document.getElementById('topLineasList');
+  const topProveedoresList = document.getElementById('topProveedoresList');
+
+  const isF = analysisType === 'faltante';
+  
+  // Filtrar según el tipo de análisis (faltantes < 0, sobrantes > 0)
+  const filtered = items.filter(r => r.ARTICULO && (isF ? (Number(r.DIFERENCIA) || 0) < 0 : (Number(r.DIFERENCIA) || 0) > 0));
+
+  // 1. Top 5 Artículos con Mayor Pérdida/Sobrante ($ Real)
+  // Faltantes: ordenar de menor a mayor (más negativo primero)
+  // Sobrantes: ordenar de mayor a menor (más positivo primero)
+  const topArticulos = filtered.slice().sort((a, b) => {
+    const valA = Number(a['TOTAL REAL']) || 0;
+    const valB = Number(b['TOTAL REAL']) || 0;
+    return isF ? valA - valB : valB - valA;
+  }).slice(0, 5);
+
+  topArticulosList.innerHTML = '';
+  if (topArticulos.length === 0) {
+    topArticulosList.innerHTML = `<li class="empty-state" style="padding:10px 0;">Sin ${isF ? 'faltantes' : 'sobrantes'} registrados.</li>`;
+  } else {
+    topArticulos.forEach(r => {
+      const li = document.createElement('li');
+      li.className = 'analysis-item';
+      li.style.cursor = 'pointer';
+      li.title = 'Doble clic para ver foto';
+      li.setAttribute('ondblclick', `showImageModal('${r.ARTICULO}')`);
+      li.setAttribute('onmouseenter', `showHoverPreview(event, '${r.ARTICULO}')`);
+      li.setAttribute('onmousemove', `moveHoverPreview(event)`);
+      li.setAttribute('onmouseleave', `hideHoverPreview()`);
+      
+      const val = Number(r['TOTAL REAL']) || 0;
+      const colorStyle = isF ? 'color: var(--rose-deep);' : 'color: var(--sage-deep);';
+      
+      li.innerHTML = `
+        <div class="analysis-label">
+          <span style="font-family: monospace; font-size: 13px; font-weight: 700; ${colorStyle}">${r.ARTICULO}</span>
+          <span class="analysis-sublabel">${r.DESCRIPCION || 'Artículo sin descripción'} · ${r.BODEGA || '—'}</span>
+        </div>
+        <div class="analysis-val" style="${colorStyle}">${fmtMoney(val)}</div>
+      `;
+      topArticulosList.appendChild(li);
+    });
+  }
+
+  // 2. Top 3 Líneas Más Afectadas
+  const lineasSuma = {};
+  filtered.forEach(r => {
+    const l = r.LINEA || 'SIN LÍNEA';
+    if (!lineasSuma[l]) lineasSuma[l] = 0;
+    lineasSuma[l] += (Number(r['TOTAL REAL']) || 0);
+  });
+  
+  const topLineas = Object.keys(lineasSuma)
+    .map(key => ({ name: key, loss: lineasSuma[key] }))
+    .sort((a, b) => isF ? a.loss - b.loss : b.loss - a.loss)
+    .slice(0, 3);
+
+  topLineasList.innerHTML = '';
+  if (topLineas.length === 0) {
+    topLineasList.innerHTML = `<li class="empty-state" style="padding:10px 0;">Sin ${isF ? 'faltantes' : 'sobrantes'} registrados.</li>`;
+  } else {
+    topLineas.forEach(r => {
+      const li = document.createElement('li');
+      li.className = 'analysis-item';
+      const colorStyle = isF ? 'color: var(--rose-deep);' : 'color: var(--sage-deep);';
+      li.innerHTML = `
+        <div class="analysis-label">
+          <span>${r.name}</span>
+          <span class="analysis-sublabel">Línea de Joyería</span>
+        </div>
+        <div class="analysis-val" style="${colorStyle}">${fmtMoney(r.loss)}</div>
+      `;
+      topLineasList.appendChild(li);
+    });
+  }
+
+  // 3. Top 3 Proveedores Más Afectados
+  const proveedoresSuma = {};
+  filtered.forEach(r => {
+    const p = r.PROVEEDOR || 'SIN PROVEEDOR';
+    if (!proveedoresSuma[p]) proveedoresSuma[p] = 0;
+    proveedoresSuma[p] += (Number(r['TOTAL REAL']) || 0);
+  });
+  
+  const topProveedores = Object.keys(proveedoresSuma)
+    .map(key => ({ name: key, loss: proveedoresSuma[key] }))
+    .sort((a, b) => isF ? a.loss - b.loss : b.loss - a.loss)
+    .slice(0, 3);
+
+  topProveedoresList.innerHTML = '';
+  if (topProveedores.length === 0) {
+    topProveedoresList.innerHTML = `<li class="empty-state" style="padding:10px 0;">Sin ${isF ? 'faltantes' : 'sobrantes'} registrados.</li>`;
+  } else {
+    topProveedores.forEach(r => {
+      const li = document.createElement('li');
+      li.className = 'analysis-item';
+      const colorStyle = isF ? 'color: var(--rose-deep);' : 'color: var(--sage-deep);';
+      li.innerHTML = `
+        <div class="analysis-label">
+          <span>${r.name}</span>
+          <span class="analysis-sublabel">Código Proveedor</span>
+        </div>
+        <div class="analysis-val" style="${colorStyle}">${fmtMoney(r.loss)}</div>
+      `;
+      topProveedoresList.appendChild(li);
+    });
+  }
+}
+
+(async () => {
+  if (currentKey) {
+    await loadBranchDataIfNeeded(currentKey);
+  }
+  render();
+})();
+
+// ---- LÓGICA DE NAVEGACIÓN Y DASHBOARD GLOBAL CADENA ----
+let currentMainTab = 'sucursal';
+
+async function switchMainTab(tabName) {
+  currentMainTab = tabName;
+  const sucursalWrap = document.getElementById('sucursalViewWrapper');
+  const globalWrap = document.getElementById('globalDashboardView');
+  const tabSucursalBtn = document.getElementById('tabSucursalBtn');
+  const tabGlobalBtn = document.getElementById('tabGlobalBtn');
+  const sucursalSelect = document.getElementById('sucursalSelect');
+  const copyEmailBtn = document.getElementById('copyEmailBtn');
+
+  if (tabName === 'global') {
+    sucursalWrap.style.display = 'none';
+    globalWrap.style.display = 'block';
+    
+    tabSucursalBtn.style.background = 'transparent';
+    tabSucursalBtn.style.color = 'var(--muted)';
+    tabSucursalBtn.style.boxShadow = 'none';
+
+    tabGlobalBtn.style.background = 'var(--card)';
+    tabGlobalBtn.style.color = 'var(--ink)';
+    tabGlobalBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.06)';
+
+    if (sucursalSelect) sucursalSelect.style.display = 'none';
+    if (copyEmailBtn) copyEmailBtn.style.display = 'none';
+    await renderGlobalDashboard();
+  } else {
+    globalWrap.style.display = 'none';
+    sucursalWrap.style.display = 'block';
+
+    tabGlobalBtn.style.background = 'transparent';
+    tabGlobalBtn.style.color = 'var(--muted)';
+    tabGlobalBtn.style.boxShadow = 'none';
+
+    tabSucursalBtn.style.background = 'var(--card)';
+    tabSucursalBtn.style.color = 'var(--ink)';
+    tabSucursalBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.06)';
+
+    if (sucursalSelect) sucursalSelect.style.display = 'block';
+    if (copyEmailBtn) copyEmailBtn.style.display = 'inline-block';
+  }
+}
+
+async function renderGlobalDashboard() {
+  // En modo web, asegurarse de haber cargado el JSON de todas las sucursales para el tablero global
+  if (isWebMode) {
+    const dataStatus = document.getElementById('dataStatus');
+    if (dataStatus) dataStatus.textContent = 'Cargando datos globales de la cadena...';
+    for (const k of Object.keys(periods)) {
+      if (!periods[k].loaded) {
+        await loadBranchDataIfNeeded(k);
+      }
+    }
+  }
+
+  const sucursalesResumen = [];
+  const lineasGlobal = {};
+  const proveedoresGlobal = {};
+  const articulosGlobalMap = {};
+  
+  let totalPerdidaCadena = 0;
+  let totalPiezasPerdidasCadena = 0;
+
+  Object.keys(periods).forEach(key => {
+    const period = periods[key];
+    const h = period.header;
+    const items = period.items || [];
+    
+    let perdidaSucursalSistema = 0;
+    let perdidaSucursalReal = 0;
+    let piezasFaltantesSucursal = 0;
+
+    // Desglose por bodega (Piso de Venta vs Almacén / Bodega)
+    const itemsPiso = items.filter(r => (r.BODEGA || '').trim().toUpperCase() === 'PISO DE VENTA');
+    const itemsBodega = items.filter(r => (r.BODEGA || '').trim().toUpperCase() === 'BODEGA');
+
+    const fsPiso = buildFaltanteSobrante(itemsPiso);
+    const fsBodega = buildFaltanteSobrante(itemsBodega);
+
+    items.forEach(r => {
+      const dif = Number(r.DIFERENCIA) || 0;
+      const totSist = Number(r.TOTAL) || 0;
+      const totReal = Number(r['TOTAL REAL']) || 0;
+      const cod = r.ARTICULO || 'SIN CODIGO';
+      const linea = r.LINEA || 'SIN LÍNEA';
+      const prov = r.PROVEEDOR || 'SIN PROVEEDOR';
+
+      if (dif < 0) {
+        perdidaSucursalSistema += Math.abs(totSist);
+        perdidaSucursalReal += Math.abs(totReal);
+        piezasFaltantesSucursal += Math.abs(dif);
+        totalPerdidaCadena += Math.abs(totReal);
+        totalPiezasPerdidasCadena += Math.abs(dif);
+
+        // Agrupar por Línea
+        if (!lineasGlobal[linea]) lineasGlobal[linea] = 0;
+        lineasGlobal[linea] += Math.abs(totReal);
+
+        // Agrupar por Proveedor
+        if (!proveedoresGlobal[prov]) proveedoresGlobal[prov] = 0;
+        proveedoresGlobal[prov] += Math.abs(totReal);
+
+        // Agrupar por Artículo Global
+        if (!articulosGlobalMap[cod]) {
+          articulosGlobalMap[cod] = {
+            art: cod,
+            desc: r.DESCRIPCION || 'Artículo sin descripción',
+            linea: r.LINEA || '—',
+            sublinea: r.SUBLINEA || '—',
+            precio: Number(r.PRECIO) || 0,
+            prov: r.PROVEEDOR || '—',
+            loss: 0,
+            pzs: 0,
+            sucursalesSet: new Set()
+          };
+        }
+        articulosGlobalMap[cod].loss += Math.abs(totReal);
+        articulosGlobalMap[cod].pzs += Math.abs(dif);
+        articulosGlobalMap[cod].sucursalesSet.add(h.SUCURSAL);
+      }
+    });
+
+    const days = daysBetween(h.INV_ACTUAL, h.INV_ANT);
+    const months = monthsBetween(days);
+    const allPisoRows = [...itemsPiso, ...(period.bodegaSummaryRows || []).filter(r => (r.BODEGA || '').trim().toUpperCase() === 'PISO DE VENTA')];
+    const allBodegaRows = [...itemsBodega, ...(period.bodegaSummaryRows || []).filter(r => (r.BODEGA || '').trim().toUpperCase() === 'BODEGA')];
+    const monthsPiso = getBodegaMonths(allPisoRows, h) || months;
+    const monthsBodega = getBodegaMonths(allBodegaRows, h) || months;
+
+    // Obtener límites permitidos específicos por bodega (en valor absoluto positivo)
+    const bodegasMap = {};
+    items.forEach(r => {
+      const b = r.BODEGA || 'SIN BODEGA';
+      if (!bodegasMap[b]) bodegasMap[b] = new Set();
+      if (r['PERMITIDO X MES'] !== null && r['PERMITIDO X MES'] !== undefined) {
+        bodegasMap[b].add(Math.abs(Number(r['PERMITIDO X MES']) || 0));
+      }
+    });
+    (period.bodegaSummaryRows || []).forEach(r => {
+      const b = r.BODEGA || 'SIN BODEGA';
+      if (!bodegasMap[b]) bodegasMap[b] = new Set();
+      if (r['PERMITIDO X MES'] !== null && r['PERMITIDO X MES'] !== undefined) {
+        bodegasMap[b].add(Math.abs(Number(r['PERMITIDO X MES']) || 0));
+      }
+    });
+
+    const getPermitidoVal = (bName) => {
+      const set = bodegasMap[bName];
+      if (!set || set.size === 0) return 0;
+      return Array.from(set)[0];
+    };
+
+    const promPisoSist = monthsPiso ? (Math.abs(fsPiso.faltanteSistema) / monthsPiso) : 0;
+    const promPisoReal = monthsPiso ? (Math.abs(fsPiso.faltanteReal) / monthsPiso) : 0;
+    const promBodegaSist = monthsBodega ? (Math.abs(fsBodega.faltanteSistema) / monthsBodega) : 0;
+    const promBodegaReal = monthsBodega ? (Math.abs(fsBodega.faltanteReal) / monthsBodega) : 0;
+
+    const permPiso = getPermitidoVal('PISO DE VENTA');
+    const permBodega = getPermitidoVal('BODEGA');
+
+    // Se evalúa excede si el promedio en sistema O en real supera el permitido en positivo
+    const excedePiso = permPiso > 0 && (promPisoSist > permPiso || promPisoReal > permPiso);
+    const excedeBodega = permBodega > 0 && (promBodegaSist > permBodega || promBodegaReal > permBodega);
+
+    sucursalesResumen.push({
+      key: key,
+      sucursal: h.SUCURSAL,
+      contralor: h.CONTRALOR || '—',
+      encargada1: h.ENCARGADA1 || '—',
+      invActual: h.INV_ACTUAL,
+      perdidaSistema: perdidaSucursalSistema,
+      perdidaReal: perdidaSucursalReal,
+      piezasFaltantes: piezasFaltantesSucursal,
+      months: months,
+      promPisoSist: promPisoSist,
+      promPisoReal: promPisoReal,
+      permPiso: permPiso,
+      excedePiso: excedePiso,
+      promBodegaSist: promBodegaSist,
+      promBodegaReal: promBodegaReal,
+      permBodega: permBodega,
+      excedeBodega: excedeBodega
+    });
+  });
+
+  // Ordenar sucursales de mayor a menor pérdida en $ Real
+  sucursalesResumen.sort((a, b) => b.perdidaReal - a.perdidaReal);
+
+  // Render KPI globales superiores
+  document.getElementById('globTotalSucursales').textContent = Object.keys(periods).length;
+  document.getElementById('globPerdidaTotal').textContent = fmtMoney(-totalPerdidaCadena);
+  document.getElementById('globPiezasFaltantes').textContent = fmtNum(-totalPiezasPerdidasCadena) + ' pzas';
+  
+  if (sucursalesResumen.length > 0) {
+    const topCritica = sucursalesResumen[0];
+    document.getElementById('globSucursalCriticaName').textContent = topCritica.sucursal;
+    document.getElementById('globSucursalCriticaVal').textContent = fmtMoney(-topCritica.perdidaReal);
+  }
+
+  // Render Tabla de Ranking de Sucursales (por defecto MUESTRA SOLO CRÍTICAS, a menos que se marque la casilla "Mostrar todas")
+  const showAll = document.getElementById('showAllSucursalesCheck')?.checked || false;
+  const listToRender = showAll
+    ? sucursalesResumen
+    : sucursalesResumen.filter(s => s.excedePiso || s.excedeBodega);
+
+  const rankBody = document.getElementById('globalSucursalesRankBody');
+  rankBody.innerHTML = '';
+
+  if (listToRender.length === 0) {
+    rankBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: var(--muted); font-weight: 600;">✓ No hay sucursales críticas en este momento.</td></tr>`;
+  } else {
+    listToRender.forEach((s, idx) => {
+      const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      tr.style.borderBottom = '1px solid var(--hairline)';
+      tr.onclick = () => {
+        document.getElementById('sucursalSelect').value = s.key;
+        currentKey = s.key;
+        render();
+        switchMainTab('sucursal');
+      };
+      
+      const badgePiso = s.excedePiso
+        ? `<span class="badge" style="background:#FFF2F0; color:var(--rose-deep); border-color:rgba(230,90,75,0.25); font-size:10px;">⚠️ Piso: Excede</span>`
+        : `<span class="badge ok" style="background:#F0F9F4; color:var(--sage-deep); border-color:rgba(16,185,129,0.2); font-size:10px;">✓ Piso: Ok</span>`;
+
+      const badgeBodega = s.excedeBodega
+        ? `<span class="badge" style="background:#FFF2F0; color:var(--rose-deep); border-color:rgba(230,90,75,0.25); font-size:10px;">⚠️ Almacén: Excede</span>`
+        : `<span class="badge ok" style="background:#F0F9F4; color:var(--sage-deep); border-color:rgba(16,185,129,0.2); font-size:10px;">✓ Almacén: Ok</span>`;
+
+      tr.innerHTML = `
+        <td style="font-weight:700; text-align:center; color:var(--muted); padding: 12px 8px;">${idx + 1}</td>
+        <td style="font-weight:700; color:var(--ink); padding: 12px 8px;">${s.sucursal}</td>
+        <td style="color:var(--muted); font-size:12px; padding: 12px 8px;">${s.encargada1}</td>
+        <td class="num" style="color:var(--rose-deep); font-weight:700; padding: 12px 8px;">${fmtNum(-s.piezasFaltantes)}</td>
+        <td class="num" style="color:var(--ink); font-weight:600; padding: 12px 8px;">${fmtMoney(-s.perdidaSistema)}</td>
+        <td class="num" style="color:var(--rose-deep); font-weight:700; padding: 12px 8px;">${fmtMoney(-s.perdidaReal)}</td>
+        <td class="num" style="font-size:11px; line-height:1.4; padding: 12px 8px;">
+          <div>Piso Sist: <strong>${fmtMoney(-s.promPisoSist)}</strong> · Real: <strong style="color:var(--rose-deep);">${fmtMoney(-s.promPisoReal)}</strong> /m</div>
+          <div style="color:var(--muted); font-size:10px; margin-top:2px;">Almacén Sist: <strong>${fmtMoney(-s.promBodegaSist)}</strong> · Real: <strong>${fmtMoney(-s.promBodegaReal)}</strong> /m</div>
+        </td>
+        <td style="padding: 12px 8px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            ${badgePiso}
+            ${badgeBodega}
+          </div>
+        </td>
+      `;
+      rankBody.appendChild(tr);
+    });
+  }
+
+  // Variables globales para Chart.js
+  if (!window.lineasChartInstance) window.lineasChartInstance = null;
+  if (!window.proveedoresChartInstance) window.proveedoresChartInstance = null;
+
+  // Render Top 5 Líneas Globales
+  const topLineasArr = Object.keys(lineasGlobal)
+    .map(l => ({ name: l, loss: lineasGlobal[l] }))
+    .sort((a, b) => b.loss - a.loss)
+    .slice(0, 5);
+
+  const globLineasList = document.getElementById('globTopLineasList');
+  globLineasList.innerHTML = '';
+  topLineasArr.forEach((item, idx) => {
+    const li = document.createElement('li');
+    li.className = 'analysis-item';
+    li.style.alignItems = 'center';
+    li.style.padding = '10px 12px';
+    li.style.marginBottom = '6px';
+    li.style.borderRadius = '8px';
+    li.style.border = '1px solid var(--hairline-2)';
+    li.style.background = idx % 2 === 0 ? 'var(--card)' : 'var(--bg)';
+
+    li.innerHTML = `
+      <div style="font-weight:800; font-size:12px; color:var(--muted); width:20px; text-align:center;">${idx + 1}</div>
+      <div class="analysis-label" style="flex:1; min-width:0; padding:0 10px;">
+        <span style="font-weight:700; font-size:13px; color:var(--ink);">${item.name}</span>
+        <span class="analysis-sublabel" style="display:block; margin-top:2px;">Línea de Joyería</span>
+      </div>
+      <div class="analysis-val" style="color:var(--rose-deep); font-weight:800; font-size:13.5px; white-space:nowrap;">${fmtMoney(-item.loss)}</div>
+    `;
+    globLineasList.appendChild(li);
+  });
+
+  // Render Gráfica Chart.js para Líneas
+  if (window.Chart && document.getElementById('lineasChartCanvas')) {
+    if (window.lineasChartInstance) window.lineasChartInstance.destroy();
+    const ctxLineas = document.getElementById('lineasChartCanvas').getContext('2d');
+    window.lineasChartInstance = new Chart(ctxLineas, {
+      type: 'bar',
+      data: {
+        labels: topLineasArr.map(i => i.name),
+        datasets: [{
+          label: 'Pérdida en $ Real',
+          data: topLineasArr.map(i => i.loss),
+          backgroundColor: 'rgba(230, 90, 75, 0.85)',
+          borderColor: '#E65A4B',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { callback: v => '$' + v.toLocaleString() }, grid: { color: 'rgba(0,0,0,0.04)' } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // Render Top 5 Proveedores Globales
+  const topProvArr = Object.keys(proveedoresGlobal)
+    .map(p => ({ name: p, loss: proveedoresGlobal[p] }))
+    .sort((a, b) => b.loss - a.loss)
+    .slice(0, 5);
+
+  const globProvList = document.getElementById('globTopProveedoresList');
+  globProvList.innerHTML = '';
+  topProvArr.forEach((item, idx) => {
+    const li = document.createElement('li');
+    li.className = 'analysis-item';
+    li.style.alignItems = 'center';
+    li.style.padding = '10px 12px';
+    li.style.marginBottom = '6px';
+    li.style.borderRadius = '8px';
+    li.style.border = '1px solid var(--hairline-2)';
+    li.style.background = idx % 2 === 0 ? 'var(--card)' : 'var(--bg)';
+
+    li.innerHTML = `
+      <div style="font-weight:800; font-size:12px; color:var(--muted); width:20px; text-align:center;">${idx + 1}</div>
+      <div class="analysis-label" style="flex:1; min-width:0; padding:0 10px;">
+        <span style="font-weight:700; font-size:13px; color:var(--ink);">${item.name}</span>
+        <span class="analysis-sublabel" style="display:block; margin-top:2px;">Código Proveedor</span>
+      </div>
+      <div class="analysis-val" style="color:var(--rose-deep); font-weight:800; font-size:13.5px; white-space:nowrap;">${fmtMoney(-item.loss)}</div>
+    `;
+    globProvList.appendChild(li);
+  });
+
+  // Render Gráfica Chart.js para Proveedores
+  if (window.Chart && document.getElementById('proveedoresChartCanvas')) {
+    if (window.proveedoresChartInstance) window.proveedoresChartInstance.destroy();
+    const ctxProv = document.getElementById('proveedoresChartCanvas').getContext('2d');
+    window.proveedoresChartInstance = new Chart(ctxProv, {
+      type: 'bar',
+      data: {
+        labels: topProvArr.map(i => i.name),
+        datasets: [{
+          label: 'Pérdida en $ Real',
+          data: topProvArr.map(i => i.loss),
+          backgroundColor: 'rgba(59, 130, 246, 0.85)',
+          borderColor: '#3B82F6',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { callback: v => '$' + v.toLocaleString() }, grid: { color: 'rgba(0,0,0,0.04)' } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // Render Top 10 Artículos Más Afectados A Nivel Cadena
+  const topArtGlobal = Object.values(articulosGlobalMap)
+    .sort((a, b) => b.loss - a.loss)
+    .slice(0, 10);
+
+  const globArtList = document.getElementById('globTopArticulosList');
+  globArtList.innerHTML = '';
+  topArtGlobal.forEach((r, idx) => {
+    const li = document.createElement('li');
+    li.className = 'analysis-item';
+    li.style.cursor = 'pointer';
+    li.style.alignItems = 'center';
+    li.style.padding = '10px 12px';
+    li.style.marginBottom = '6px';
+    li.style.borderRadius = '8px';
+    li.style.border = '1px solid var(--hairline-2)';
+    li.style.background = idx % 2 === 0 ? 'var(--card)' : 'var(--bg)';
+    li.style.transition = 'all 0.15s ease';
+    
+    li.title = 'Clic para ver foto e información';
+    li.onclick = function() {
+      currentNavigationRows = topArtGlobal.map(item => ({
+        ARTICULO: item.art,
+        DESCRIPCION: item.desc,
+        LINEA: item.linea || '—',
+        SUBLINEA: item.sublinea || '—',
+        PRECIO: item.precio || 0,
+        PROVEEDOR: item.prov || '—',
+        DIFERENCIA: -item.pzs,
+        'TOTAL REAL': -item.loss
+      }));
+      showImageModal(r.art);
+    };
+    li.setAttribute('onmouseenter', `showHoverPreview(event, '${r.art}')`);
+    li.setAttribute('onmousemove', `moveHoverPreview(event)`);
+    li.setAttribute('onmouseleave', `hideHoverPreview()`);
+
+    const tiendasCount = r.sucursalesSet.size;
+    const tiendasBadge = `<span style="display:inline-block; font-weight:800; font-size:9px; background:rgba(230,90,75,0.08); color:var(--rose-deep); padding:2px 7px; border-radius:4px; white-space:nowrap; border:1px solid rgba(230,90,75,0.2); letter-spacing:0.3px;">${tiendasCount === 1 ? '1 SUCURSAL' : tiendasCount + ' SUCURSALES'}</span>`;
+
+    li.innerHTML = `
+      <div style="font-weight:800; font-size:12px; color:var(--muted); width:20px; text-align:center;">${idx + 1}</div>
+      <div class="analysis-label" style="flex:1; min-width:0; padding:0 10px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-family: monospace; font-size: 13px; font-weight: 700; color:var(--rose-deep);">${r.art}</span>
+          ${tiendasBadge}
+        </div>
+        <div style="font-size: 11px; color: var(--ink); margin-top:3px; line-height:1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${r.desc}">${r.desc}</div>
+      </div>
+      <div class="analysis-val" style="color:var(--rose-deep); font-weight:800; font-size:13.5px; white-space:nowrap;">${fmtMoney(-r.loss)}</div>
+    `;
+    globArtList.appendChild(li);
+  });
+}
+
+// Convertidor automático de logo a Base64 para máxima portabilidad
+window.addEventListener('DOMContentLoaded', () => {
+  const logoEl = document.getElementById('logoImg');
+  if (logoEl && logoEl.src.endsWith('logo-michelle.png')) {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const dataURL = canvas.toDataURL('image/png');
+        if (dataURL && dataURL.startsWith('data:image/png')) {
+          logoEl.src = dataURL;
+        }
+      } catch(e) { console.log('Logo local activo'); }
+    };
+    img.src = logoEl.src;
+  }
+});
+</script>
+
+<!-- Modal de Imagen Enriquecido -->
+<div id="imageModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 680px; width: 90%;">
+    <button class="modal-close" onclick="closeImageModal()">×</button>
+    <h3 id="modalTitle" class="modal-title" style="margin-bottom: 10px; border-bottom: 1px solid var(--hairline); width: 100%; padding-bottom: 10px; text-align: left;">Detalle de Artículo</h3>
+    
+    <div style="display: flex; gap: 24px; text-align: left; width: 100%; align-items: center; flex-wrap: wrap;">
+      <!-- Columna Imagen -->
+      <div style="flex: 1 1 260px; display: flex; justify-content: center; position: relative; background: #fff; border-radius: 8px; border: 1px solid var(--hairline); padding: 10px; min-height: 280px; align-items: center;">
+        <img id="modalImage" class="modal-image" src="https://respaldosmichelle2022-ui.github.io/FOTOS-MICHELLE/AQSFGKRCC2AK.JPG" alt="Cargando imagen..." style="max-height: 300px; width: 100%; object-fit: contain; display: block;">
+        <div id="modalError" class="modal-error" style="display:none; padding: 60px 0;">
+          ⚠️ Imagen no disponible en el servidor.
+        </div>
+      </div>
+      
+      <!-- Columna Metadatos -->
+      <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="border-bottom: 1px solid var(--hairline); padding-bottom: 6px;">
+          <span style="font-size: 9.5px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Código de Artículo</span>
+          <div id="metaCodigo" style="font-family: monospace; font-size: 19px; font-weight: bold; color: var(--rose-deep); margin-top: 2px;">AQSFGKRCC2AK</div>
+        </div>
+        <div>
+          <span style="font-size: 9.5px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Descripción</span>
+          <div id="metaDescripcion" style="font-size: 13.5px; font-weight: 600; color: var(--ink); margin-top: 2px; line-height: 1.4;">Juego de Collar/Aretes Flor Pdra Zirc Pl/Cry (CH)</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div>
+            <span style="font-size: 9.5px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Línea</span>
+            <div id="metaLinea" style="font-size: 12.5px; font-weight: 600; color: var(--ink); margin-top: 2px;">CHAPA DE ORO</div>
+          </div>
+          <div>
+            <span style="font-size: 9.5px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Sublínea</span>
+            <div id="metaSublinea" style="font-size: 12.5px; font-weight: 600; color: var(--ink); margin-top: 2px;">COLLAR ARETES</div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div>
+            <span style="font-size: 9.5px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Precio</span>
+            <div id="metaPrecio" style="font-size: 13px; font-weight: 600; color: var(--ink); margin-top: 2px;">$249.00</div>
+          </div>
+          <div>
+            <span style="font-size: 9.5px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Proveedor</span>
+            <div id="metaProveedor" style="font-size: 13px; font-weight: 600; color: var(--ink); margin-top: 2px;">AQS</div>
+          </div>
+        </div>
+        
+        <div id="metaDiffContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 12px 14px; border-radius: 8px; margin-top: 8px; transition: 0.2s; background: rgb(255, 242, 240); border: 1px solid rgba(230, 90, 75, 0.25);">
+          <div>
+            <span id="metaDiffLabel" style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Faltante Pzas</span>
+            <div id="metaDiffPzs" style="font-size: 16px; font-weight: 800; font-family: Fraunces, serif; color: var(--rose-deep);">-2</div>
+          </div>
+          <div>
+            <span id="metaTotalLabel" style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Faltante Pesos</span>
+            <div id="metaTotalReal" style="font-size: 16px; font-weight: 800; font-family: Fraunces, serif; color: var(--rose-deep);">-$498.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Controles de navegación inferiores -->
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-top: 1px solid var(--hairline); padding-top: 16px; margin-top: 10px;">
+      <button id="modalPrevBtn" class="upload-btn generate-btn" style="padding: 8px 16px; font-size: 11px; margin: 0px; opacity: 1;" onclick="navigateModal(-1)">← Anterior</button>
+      <span id="modalIndexIndicator" style="font-size: 11.5px; color: var(--muted); font-weight: 700;">4 / 365</span>
+      <button id="modalNextBtn" class="upload-btn" style="padding: 8px 16px; font-size: 11px; margin: 0px; opacity: 1;" onclick="navigateModal(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contenedor flotante para previa al pasar mouse -->
+<div id="imageHoverPreview" style="display: none; position: fixed; z-index: 2000; pointer-events: none; flex-direction: column; align-items: center; left: 599px; top: 462px;">
+  <img id="hoverImage" src="https://respaldosmichelle2022-ui.github.io/FOTOS-MICHELLE/LWBPSQCA1AF.JPG" style="max-width: 160px; max-height: 160px; border-radius: 8px; border: 1px solid var(--hairline-2); object-fit: contain; background: white; box-shadow: 0 10px 28px rgba(43,35,32,0.22); padding: 6px;">
+  <div style="font-size: 8.5px; color: var(--rose-deep); text-align: center; margin-top: 6px; font-weight: 800; background: rgba(251,245,239,0.95); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--hairline); box-shadow: 0 4px 10px rgba(0,0,0,0.06); text-transform: uppercase; letter-spacing: 0.3px;">
+    Doble clic para ver detalles
+  </div>
+</div>
+
+
+
+</body></html>
